@@ -4,11 +4,17 @@ Because you pluck then plop. I know very creative.
 
 ## Getting Started
 
+Install [ollama](https://github.com/jmorganca/ollama) and make sure to run `ollama pull openhermes2.5-mistral` or swap it out in the code for something else.
+
+`Ctrl / Cmd + Shift + .`: Replace the selected text with the output of the model.
+
+`Ctrl / Cmd + Shift + /`: Feed whatever is on your clipboard as "context" and the replace the selected text with the output of the model.
+
 Mac will request access to keyboard accessibility.
 
-Windows (untested), you'll need to swap out Ollama for something else, as it doesn't support windows yet.
-
 Linux (untested), may require X11 libs for clipboard stuff
+
+Windows (untested), you'll need to swap out Ollama for something else, as it doesn't support windows yet.
 
 ## Developing Plock
 
