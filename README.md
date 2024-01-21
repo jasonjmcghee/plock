@@ -10,6 +10,8 @@ Note: Something not work properly? I won't know! Please log an issue or take a c
   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/fed267e695d145c88e6bff7e631da8e0-with-play.gif">
 </a>
 
+(in the video I mention [rem](https://github.com/jasonjmcghee/rem), another project I'm working on)
+
 ## Getting Started
 
 Install [ollama](https://github.com/jmorganca/ollama) and make sure to run `ollama pull openhermes2.5-mistral` or swap it out in the code for something else.
