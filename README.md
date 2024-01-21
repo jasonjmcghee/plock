@@ -6,6 +6,10 @@ Because you pluck then plop. I know very creative.
 
 Install [ollama](https://github.com/jmorganca/ollama) and make sure to run `ollama pull openhermes2.5-mistral` or swap it out in the code for something else.
 
+Launch "plock"
+
+Shortcuts:
+
 `Ctrl / Cmd + Shift + .`: Replace the selected text with the output of the model.
 
 `Ctrl / Cmd + Shift + /`: Feed whatever is on your clipboard as "context" and the replace the selected text with the output of the model.
