@@ -1,0 +1,42 @@
+[package]
+name = "plock"
+version = "0.1.0"
+description = "Use an llm in context"
+authors = ["Jason McGhee <mcghee.j@gmail.com>"]
+license = "MIT"
+repository = "jasonjmcghee/xrem"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+tauri = { version = "1.5", features = [ "clipboard-all", "global-shortcut-all",
+  "shell-open", "system-tray"
+] }
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+ollama-rs = { version = "0.1.6", features = ["stream"] }
+tokio = { version = "1.0", features = ["full"] }
+tokio-stream = "0.1.14"
+rdev = { git = "https://github.com/fufesou/rdev" }
+enigo = "0.2.0-rc2"
+arboard = "3.3.0"
+
+# OCR feature dependencies
+screenshots = { version = "0.8.6", optional = true }
+rusty-tesseract = { version = "1.1.9", optional = true }
+active-win-pos-rs = { version = "0.8", optional = true }
+
+[profile.release]
+opt-level = 3
+
+[features]
+default = []
+ocr = ["screenshots", "rusty-tesseract", "active-win-pos-rs"]
+# this feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

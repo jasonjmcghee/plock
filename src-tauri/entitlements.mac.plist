@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Other existing keys here -->
+
+    <!-- Permission for input monitoring -->
+    <key>NSAppleEventsUsageDescription</key>
+    <string>We need access to monitor inputs to provide enhanced features.</string>
+
+    <!-- Permission for clipboard access -->
+    <key>NSPasteboardUsageDescription</key>
+    <string>We need access to your clipboard to easily paste and copy data for you.</string>
+
+    <!-- Add other necessary keys here -->
+</dict>
+</plist>
