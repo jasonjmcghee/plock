@@ -1,5 +1,7 @@
 # Plock
 
+100% Local.
+
 Because you pluck then plop. I know very creative.
 
 <a href="https://www.loom.com/share/fed267e695d145c88e6bff7e631da8e0">
