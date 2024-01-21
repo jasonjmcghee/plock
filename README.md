@@ -4,15 +4,11 @@ Because you pluck then plop. I know very creative.
 
 ## Getting Started
 
-On Linux you need the x11 library (for clipboard), install it with something like:
-
-```bash
-sudo apt-get install xorg-dev
-```
-
 Mac will request access to keyboard accessibility.
 
-Windows, you'll need to swap out Ollama for something else, as it doesn't support windows yet.
+Windows (untested), you'll need to swap out Ollama for something else, as it doesn't support windows yet.
+
+Linux (untested), may require X11 libs for clipboard stuff
 
 ## Developing Plock
 
