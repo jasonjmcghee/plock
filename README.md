@@ -4,6 +4,8 @@
 
 Because you pluck then plop. I know very creative.
 
+Note: Something not work properly? I won't know! Please log an issue or take a crack at fixing it yourself and submitting a PR! Have feature ideas? Log an issue!
+
 <a href="https://www.loom.com/share/fed267e695d145c88e6bff7e631da8e0">
   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/fed267e695d145c88e6bff7e631da8e0-with-play.gif">
 </a>
