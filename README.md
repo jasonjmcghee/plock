@@ -26,7 +26,8 @@ Linux (untested), may require X11 libs for clipboard stuff
 
 Windows (untested), you'll need to swap out Ollama for something else, as it doesn't support windows yet.
 
-## Developing Plock
+## Building Plock
+If you don't have apple silicon or don't want to blindly trust binaries (you shouldn't), here's how you can build it yourself!
 
 ## Prerequisites
 
