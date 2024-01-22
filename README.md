@@ -38,6 +38,8 @@ Shortcuts:
 
 `Ctrl / Cmd + Shift + /`: Feed whatever is on your clipboard as "context" and the replace the selected text with the output of the model.
 
+(these two are customizable in `settings.json`)
+
 `Escape`: Stop any streaming output
 
 **Mac** will request access to keyboard accessibility.
