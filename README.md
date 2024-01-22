@@ -8,7 +8,9 @@ Also! You can first put something on your clipboard (as in copy some text) befor
 
 For Linux, use `Ctrl` instead of `Cmd`.
 
-**100% Local** by default. (If you want to use an API or something, [you can call any shell script you want](https://github.com/jasonjmcghee/plock/blob/d82b9286fcad310e3045970a401b2a6e1399309d/src-tauri/src/generator.rs#L32) - just [set `USE_OLLAMA` to `false`](https://github.com/jasonjmcghee/plock/blob/d82b9286fcad310e3045970a401b2a6e1399309d/src-tauri/src/main.rs#L20))
+**100% Local** by default. (If you want to use an API or something, you can call any shell script you want specified in `settings.json` - just set `ollama.enabled` to `false` in `settings.json`)
+
+I show an example `settings.json` in [Settings](#settings)
 
 _Note: Something not work properly? I won't know! Please log an issue or take a crack at fixing it yourself and submitting a PR! Have feature ideas? Log an issue!_
 
@@ -28,7 +30,7 @@ If you are going to use this with remote APIs, consider environment variables fo
 
 ## Getting Started
 
-Install [ollama](https://github.com/jmorganca/ollama) and make sure to run `ollama pull openhermes2.5-mistral` or swap it out in the code for something else.
+Install [ollama](https://github.com/jmorganca/ollama) and make sure to run `ollama pull openhermes2.5-mistral` or swap it out in settings for something else.
 
 Launch "plock"
 
@@ -50,7 +52,7 @@ Also [system tray icons require some extras](https://tauri.app/v1/guides/feature
 
 **Windows** (untested), you'll need to swap out Ollama for something else, as it doesn't support windows yet.
 
-## Settings
+## [Settings]
 
 There is a `settings.json` file which you can edit to change shortcuts, the model, 
 prompts, whether to use shell scripts and what they are, and other settings.
@@ -64,7 +66,7 @@ Windows, I think it's `~\AppData\Local\today.jason.plock\settings.json`
 Correct me if any of these are wrong.
 
 <details>
-  <summary>Example</summary>
+  <summary>Show Example</summary>
 
 ```json
 {
