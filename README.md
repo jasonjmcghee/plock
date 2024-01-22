@@ -27,6 +27,8 @@ Note: Something not work properly? I won't know! Please log an issue or take a c
   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/756220f3f5e249d5b4d5b759e9f9add3-with-play.gif">
 </a>
 
+If you are going to use this with remote APIs, consider environment variables for your API keys... make sure they exist wherever you launch, or directly embed them (just don't push that code anywhere)
+
 ## Getting Started
 
 Install [ollama](https://github.com/jmorganca/ollama) and make sure to run `ollama pull openhermes2.5-mistral` or swap it out in the code for something else.
