@@ -15,12 +15,17 @@ For Linux, use `Ctrl` instead of `Cmd`.
 
 Note: Something not work properly? I won't know! Please log an issue or take a crack at fixing it yourself and submitting a PR! Have feature ideas? Log an issue!
 
-## Demo
+## Demo of Ollama
 <a href="https://www.loom.com/share/fed267e695d145c88e6bff7e631da8e0">
   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/fed267e695d145c88e6bff7e631da8e0-with-play.gif">
 </a>
 
 (in the video I mention [rem](https://github.com/jasonjmcghee/rem), another project I'm working on)
+
+## Demo of GPT-3.5 and GPT-4
+<a href="https://www.loom.com/share/756220f3f5e249d5b4d5b759e9f9add3">
+  <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/756220f3f5e249d5b4d5b759e9f9add3-with-play.gif">
+</a>
 
 ## Getting Started
 
