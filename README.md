@@ -1,6 +1,6 @@
 # Plock
 
-Use an LLM directly from literally anywhere you can type.
+Use an LLM (or anything else that can stream to stdout) directly from literally anywhere you can type. Outputs in real time.
 
 Write a prompt, select it, and hit `Cmd+Shift+.`. It will replace your prompt with the output in a streaming fashion.
 
