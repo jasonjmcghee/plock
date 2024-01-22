@@ -2,9 +2,9 @@
 
 Use an LLM (or anything else that can stream to stdout) directly from literally anywhere you can type. Outputs in real time.
 
-Write a prompt, select it, and hit `Cmd+Shift+.`. It will replace your prompt with the output in a streaming fashion.
+Write a prompt, select it, and (by default) hit `Cmd+Shift+.`. It will replace your prompt with the output in a streaming fashion.
 
-Also! You can first put something on your clipboard (as in copy some text) before writing / selecting your prompt, and it `Cmd+Shift+/` and it will use the copied text as context to answer your prompt.
+Also! You can first put something on your clipboard (as in copy some text) before writing / selecting your prompt, and it (by default) `Cmd+Shift+/` and it will use the copied text as context to answer your prompt.
 
 For Linux, use `Ctrl` instead of `Cmd`.
 
