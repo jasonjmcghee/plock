@@ -22,6 +22,7 @@ serde_json = "1.0"
 ollama-rs = { version = "0.1.6", features = ["stream"] }
 tokio = { version = "1.0", features = ["full"] }
 tokio-stream = "0.1.14"
+async-stream = "0.3.0"
 rdev = { git = "https://github.com/fufesou/rdev" }
 enigo = "0.2.0-rc2"
 arboard = "3.3.0"

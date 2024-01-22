@@ -1,9 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use crate::generator::TextGeneratorType;
 use enigo::{Direction, Enigo, Key, Keyboard, Settings};
-use ollama_rs::generation::completion::request::GenerationRequest;
-use ollama_rs::Ollama;
 use rdev::{listen, EventType, Key as RdevKey};
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -18,9 +17,12 @@ use tokio_stream::StreamExt;
 
 const BASIC_TRIGGER_SHORTCUT: &str = "CmdOrControl+Shift+.";
 const TRIGGER_WITH_CONTEXT_SHORTCUT: &str = "CmdOrControl+Shift+/";
+const USE_OLLAMA: bool = true;
 
 #[cfg(feature = "ocr")]
 mod ocr;
+
+mod generator;
 
 fn make_tray() -> SystemTray {
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
@@ -212,7 +214,7 @@ fn get_context(
     };
 
     if !should_use_clipboard_as_context {
-        return user_prompt
+        return user_prompt;
     }
 
     println!("copied... {}", user_prompt);
@@ -262,22 +264,22 @@ fn trigger_action(
         should_use_clipboard_as_context,
     );
     println!("Context: {}", context);
-    let model = "openhermes2.5-mistral".to_string();
+
+    let generator = if USE_OLLAMA {
+        TextGeneratorType::OllamaGenerator
+    } else {
+        TextGeneratorType::ShellScriptGenerator
+    };
 
     rt.spawn_blocking(move || {
         tokio::runtime::Handle::current().block_on(async {
             let mut enigo = Enigo::new(&Settings::default()).unwrap();
-            let ollama = Ollama::default();
-            let request = GenerationRequest::new(model, context);
+            let mut response_stream = generator.generate(context).await;
 
-            let mut stream = ollama.generate_stream(request).await.unwrap();
-
-            let mut buffer = vec![];
+            let mut buffer = Vec::new();
             let mut did_exit = false;
-            while let Some(Ok(res)) = stream.next().await {
-                for out in res {
-                    buffer.push(out.response);
-                }
+            while let Some(response) = response_stream.next().await {
+                buffer.push(response);
 
                 if buffer.len() > 4 {
                     let output = buffer.join("");
