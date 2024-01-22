@@ -27,5 +27,10 @@ jq -n \
 		  if [[ "$partial" == "[DONE]" ]]; then
 		    break
 		  fi
-      printf "$(echo "${partial//$'\n'/\\n}" | jq '.choices[0].delta.content' | awk -F'"' '{print $2}')"
+    out="$(echo "${partial}" | sed 's/\\n/\\\\n/g' | jq -r '.choices[0].delta.content')"
+    if [[ "$out" == "null" ]]; then
+      break
+    else
+      printf "$out"
+    fi
 		done && echo ""
