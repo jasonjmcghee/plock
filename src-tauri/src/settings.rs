@@ -24,10 +24,36 @@ pub struct Shortcuts {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct CustomCommand {
+    pub name: String,
+    pub command: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CustomPrompt {
+    pub name: String,
+    pub prompt: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CustomPrompts {
+    pub basic_index: usize,
+    pub with_context_index: usize,
+    pub custom_prompts: Vec<CustomPrompt>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CustomCommands {
+    pub index: usize,
+    pub custom_commands: Vec<CustomCommand>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Settings {
     pub environment: HashMap<String, String>,
     pub ollama: Ollama,
-    pub custom_command: Vec<String>,
+    pub custom_commands: CustomCommands,
+    pub custom_prompts: CustomPrompts,
     pub shortcuts: Shortcuts,
 }
 
@@ -39,7 +65,29 @@ impl Default for Settings {
                 enabled: true,
                 ollama_model: "openhermes2.5-mistral".to_string(),
             },
-            custom_command: ["bash", "/path/to/gpt.sh"].iter().map(|s| s.to_string()).collect(),
+            custom_commands: CustomCommands {
+                index: 0,
+                custom_commands: vec![
+                    CustomCommand {
+                        name: "gpt".to_string(),
+                        command: ["bash", "/path/to/gpt.sh"].iter().map(|s| s.to_string()).collect(),
+                    },
+                ],
+            },
+            custom_prompts: CustomPrompts {
+                basic_index: 0,
+                with_context_index: 1,
+                custom_prompts: vec![
+                    CustomPrompt {
+                        name: "default basic".to_string(),
+                        prompt: "{}".to_string(),
+                    },
+                    CustomPrompt {
+                        name: "default with context".to_string(),
+                        prompt: "I will ask you to do something. Below is some extra context to help do what I ask. --------- {} --------- Given the above context, please, {}. DO NOT OUTPUT ANYTHING ELSE.".to_string(),
+                    },
+                ],
+            },
             shortcuts: Shortcuts {
                 basic: "CmdOrControl+Shift+.".to_string(),
                 with_context: "CmdOrControl+Shift+/".to_string(),
@@ -49,7 +97,7 @@ impl Default for Settings {
 }
 
 pub fn save_current_settings(app_handle: AppHandle) -> Result<(), String> {
-    save_settings(app_handle, &*SETTINGS.lock().unwrap())?;
+    save_settings(app_handle, &SETTINGS.lock().unwrap())?;
     Ok(())
 }
 

@@ -30,7 +30,12 @@ impl TextGeneratorType {
                 })
             }
             TextGeneratorType::ShellScriptGenerator => {
-                let custom_command = { SETTINGS.lock().unwrap().custom_command.clone() };
+                let custom_command = {
+                    let settings = SETTINGS.lock().unwrap();
+                    settings.custom_commands.custom_commands[
+                        settings.custom_commands.index
+                    ].command.clone()
+                };
                 // make child from custom_command
                 let child = Command::new(&custom_command[0])
                     .args(&custom_command[1..])
