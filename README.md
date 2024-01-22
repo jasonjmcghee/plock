@@ -2,10 +2,21 @@
 
 100% Local.
 
-Because you pluck then plop. I know very creative.
+(Because you pluck then plop. I know very creative.)
+
+## What is this?
+
+Ever wanted to use an LLM directly in an app without using a chat ui or terminal? That's what this does.
+
+Write a prompt, select it, and hit `Cmd+Shift+.`. It will replace your prompt with the output in a streaming fashion.
+
+Also! You can first put something on your clipboard (as in copy some text) before writing / selecting your prompt, and it `Cmd+Shift+/` and it will use the copied text as context to answer your prompt.
+
+For Linux, use `Ctrl` instead of `Cmd`.
 
 Note: Something not work properly? I won't know! Please log an issue or take a crack at fixing it yourself and submitting a PR! Have feature ideas? Log an issue!
 
+## Demo
 <a href="https://www.loom.com/share/fed267e695d145c88e6bff7e631da8e0">
   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/fed267e695d145c88e6bff7e631da8e0-with-play.gif">
 </a>
