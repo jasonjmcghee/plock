@@ -8,25 +8,24 @@ use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::{sync::Arc, thread};
-use tauri::{
-    ActivationPolicy, AppHandle, CustomMenuItem, GlobalShortcutManager, SystemTray,
-    SystemTrayEvent, SystemTrayMenu, WindowEvent,
-};
+use tauri::{ActivationPolicy, AppHandle, CustomMenuItem, GlobalShortcutManager, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent};
 use tokio::runtime::Runtime;
 use tokio_stream::StreamExt;
-
-const BASIC_TRIGGER_SHORTCUT: &str = "CmdOrControl+Shift+.";
-const TRIGGER_WITH_CONTEXT_SHORTCUT: &str = "CmdOrControl+Shift+/";
-const USE_OLLAMA: bool = true;
+use crate::settings::SETTINGS;
 
 #[cfg(feature = "ocr")]
 mod ocr;
 
 mod generator;
+mod settings;
 
 fn make_tray() -> SystemTray {
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let tray_menu = SystemTrayMenu::new().add_item(quit);
+    let load_settings = CustomMenuItem::new("load_settings".to_string(), "Load Settings");
+    let tray_menu = SystemTrayMenu::new()
+        .add_item(load_settings)
+        .add_native_item(SystemTrayMenuItem::Separator)
+        .add_item(quit);
     SystemTray::new().with_menu(tray_menu)
 }
 
@@ -124,6 +123,9 @@ fn main() {
 
     tauri::Builder::default()
         .setup(move |app| {
+            let _ = settings::ensure_local_data_dir(app.app_handle())
+                .expect("Failed to create local data dir");
+
             #[cfg(target_os = "macos")]
             {
                 app.set_activation_policy(ActivationPolicy::Accessory);
@@ -134,15 +136,17 @@ fn main() {
             }
 
             let trigger_flag_second_clone = trigger_flag_clone.clone();
+            let basic_shortcut = { SETTINGS.lock().unwrap().shortcuts.basic.clone() };
+            let with_context_shortcut = { SETTINGS.lock().unwrap().shortcuts.with_context.clone() };
 
             app.global_shortcut_manager()
-                .register(BASIC_TRIGGER_SHORTCUT, move || {
+                .register(&basic_shortcut, move || {
                     trigger_flag_second_clone.store(true, Ordering::SeqCst);
                 })
                 .expect("Failed to register global shortcut");
 
             app.global_shortcut_manager()
-                .register(TRIGGER_WITH_CONTEXT_SHORTCUT, move || {
+                .register(&with_context_shortcut, move || {
                     use_clipboard_flag_clone.store(true, Ordering::SeqCst);
                     trigger_flag_clone.store(true, Ordering::SeqCst);
                 })
@@ -152,10 +156,16 @@ fn main() {
         })
         .system_tray(make_tray())
         .on_system_tray_event({
-            move |_app, event| {
+            move |app, event| {
                 if let SystemTrayEvent::MenuItemClick { id, .. } = event {
-                    if id.as_str() == "quit" {
-                        std::process::exit(0)
+                    match id.as_str() {
+                        "quit" => std::process::exit(0),
+                        "load_settings" => {
+                            settings::load_settings(
+                                app.app_handle().clone()
+                            ).expect("Failed to load settings.");
+                        }
+                        _ => {}
                     }
                 }
             }
@@ -265,7 +275,8 @@ fn trigger_action(
     );
     println!("Context: {}", context);
 
-    let generator = if USE_OLLAMA {
+    let use_ollama = { SETTINGS.lock().unwrap().ollama.enabled };
+    let generator = if use_ollama {
         TextGeneratorType::OllamaGenerator
     } else {
         TextGeneratorType::ShellScriptGenerator

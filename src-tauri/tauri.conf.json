@@ -11,6 +11,9 @@
   },
   "tauri": {
     "allowlist": {
+      "fs": {
+        "all": true
+      },
       "all": false,
       "shell": {
         "all": false,
