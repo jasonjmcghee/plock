@@ -1,8 +1,7 @@
 # Plock
+Because you pluck then plop. I know very creative.
 
-100% Local.
-
-(Because you pluck then plop. I know very creative.)
+**100% Local**. (or if you want to use an API or something, [you can call any shell script you want](https://github.com/jasonjmcghee/plock/blob/4d3bf32b4ed20fc1144feb8bff55b4230f1bc2b0/src-tauri/src/generator.rs#L32))
 
 ## What is this?
 
@@ -35,11 +34,11 @@ Shortcuts:
 
 `Ctrl / Cmd + Shift + /`: Feed whatever is on your clipboard as "context" and the replace the selected text with the output of the model.
 
-Mac will request access to keyboard accessibility.
+**Mac** will request access to keyboard accessibility.
 
-Linux (untested), may require X11 libs for clipboard stuff and key simulation using enigo. [Helpful instructions](https://github.com/enigo-rs/enigo/tree/main#runtime-dependencies)
+**Linux** (untested), may require X11 libs for clipboard stuff and key simulation using enigo. [Helpful instructions](https://github.com/enigo-rs/enigo/tree/main#runtime-dependencies)
 
-Windows (untested), you'll need to swap out Ollama for something else, as it doesn't support windows yet.
+**Windows** (untested), you'll need to swap out Ollama for something else, as it doesn't support windows yet.
 
 ## Building Plock
 If you don't have apple silicon or don't want to blindly trust binaries (you shouldn't), here's how you can build it yourself!
@@ -83,3 +82,10 @@ bun run tauri dev
 ```bash
 bun run tauri build
 ```
+
+## Another demo
+
+Another demo where I use the perplexity shell script to generate an answer super fast.
+Not affiliated, was just replying to a thread lol
+
+https://github.com/jasonjmcghee/plock/assets/1522149/6166af73-545f-4a8e-ad46-ea8aacd84969
