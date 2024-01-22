@@ -26,7 +26,7 @@ Shortcuts:
 
 Mac will request access to keyboard accessibility.
 
-Linux (untested), may require X11 libs for clipboard stuff
+Linux (untested), may require X11 libs for clipboard stuff and key simulation using enigo. [Helpful instructions](https://github.com/enigo-rs/enigo/tree/main#runtime-dependencies)
 
 Windows (untested), you'll need to swap out Ollama for something else, as it doesn't support windows yet.
 
