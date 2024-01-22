@@ -48,6 +48,64 @@ Also [system tray icons require some extras](https://tauri.app/v1/guides/feature
 
 **Windows** (untested), you'll need to swap out Ollama for something else, as it doesn't support windows yet.
 
+## Settings
+
+There is a `settings.json` file which you can edit to change shortcuts, the model, 
+prompts, whether to use shell scripts and what they are, and other settings.
+
+On mac, It's at `~/Library/Application Support/today.jason.plock/settings.json`.
+
+On linux, I think it's `~/$XDG_DATA_HOME/today.jason.plock/settings.json`.
+
+Windows, I think it's `~\AppData\Local\today.jason.plock\settings.json`
+
+Correct me if any of these are wrong.
+
+<details>
+  <summary>Example</summary>
+
+```json
+{
+  "environment": {},
+  "ollama": {
+    "enabled": true,
+    "ollama_model": "openhermes2.5-mistral"
+  },
+  "custom_commands": {
+    "index": 0,
+    "custom_commands": [
+      {
+        "name": "gpt",
+        "command": [
+          "bash",
+          "/Users/jason/workspace/plock/scripts/gpt.sh"
+        ]
+      }
+    ]
+  },
+  "custom_prompts": {
+    "basic_index": 0,
+    "with_context_index": 1,
+    "custom_prompts": [
+      {
+        "name": "default basic",
+        "prompt": "Say hello, then {}"
+      },
+      {
+        "name": "default with context",
+        "prompt": "I will ask you to do something. Below is some extra context to help do what I ask. --------- {} --------- Given the above context, please, {}. DO NOT OUTPUT ANYTHING ELSE."
+      }
+    ]
+  },
+  "shortcuts": {
+    "basic": "CmdOrControl+Shift+.",
+    "with_context": "CmdOrControl+Shift+/"
+  }
+}
+```
+</details>
+
+
 ## Building Plock
 If you don't have apple silicon or don't want to blindly trust binaries (you shouldn't), here's how you can build it yourself!
 

@@ -5,8 +5,7 @@ use std::process::Stdio;
 use tokio::io::{AsyncReadExt, BufReader};
 use tokio::process::Command;
 use tokio_stream::{Stream, StreamExt};
-
-const MODEL: &str = "openhermes2.5-mistral";
+use crate::settings::SETTINGS;
 
 pub enum TextGeneratorType {
     OllamaGenerator,
@@ -17,7 +16,8 @@ impl TextGeneratorType {
     pub(crate) async fn generate(&self, context: String) -> Pin<Box<dyn Stream<Item = String>>> {
         match self {
             TextGeneratorType::OllamaGenerator => {
-                let request = GenerationRequest::new(MODEL.to_string(), context);
+                let model = { SETTINGS.lock().unwrap().ollama.ollama_model.clone() };
+                let request = GenerationRequest::new(model, context);
                 Box::pin(async_stream::stream! {
                     let ollama = Ollama::default();
                     let mut stream = ollama.generate_stream(request).await.unwrap();
@@ -30,8 +30,15 @@ impl TextGeneratorType {
                 })
             }
             TextGeneratorType::ShellScriptGenerator => {
-                let child = Command::new("bash")
-                    .arg("/Users/jason/workspace/plock/scripts/gpt.sh")
+                let custom_command = {
+                    let settings = SETTINGS.lock().unwrap();
+                    settings.custom_commands.custom_commands[
+                        settings.custom_commands.index
+                    ].command.clone()
+                };
+                // make child from custom_command
+                let child = Command::new(&custom_command[0])
+                    .args(&custom_command[1..])
                     .arg(&context)
                     .stdout(Stdio::piped())
                     .spawn()
