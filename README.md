@@ -1,7 +1,7 @@
 # Plock
 Because you pluck then plop. I know very creative.
 
-**100% Local**. (or if you want to use an API or something, [you can call any shell script you want](https://github.com/jasonjmcghee/plock/blob/4d3bf32b4ed20fc1144feb8bff55b4230f1bc2b0/src-tauri/src/generator.rs#L32))
+**100% Local**. (or if you want to use an API or something, [you can call any shell script you want](https://github.com/jasonjmcghee/plock/blob/4d3bf32b4ed20fc1144feb8bff55b4230f1bc2b0/src-tauri/src/generator.rs#L32) - just [set `USE_OLLAMA` to `false`](https://github.com/jasonjmcghee/plock/blob/f092191af16c9d4b4c35277a95951796fc3986e1/src-tauri/src/main.rs#L20))
 
 ## What is this?
 
