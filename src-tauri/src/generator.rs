@@ -31,7 +31,7 @@ impl TextGeneratorType {
             }
             TextGeneratorType::ShellScriptGenerator => {
                 let child = Command::new("bash")
-                    .arg("/Users/jason/workspace/plock/scripts/p.sh")
+                    .arg("/Users/jason/workspace/plock/scripts/gpt.sh")
                     .arg(&context)
                     .stdout(Stdio::piped())
                     .spawn()
