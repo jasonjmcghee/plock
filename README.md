@@ -57,6 +57,8 @@ Also [system tray icons require some extras](https://tauri.app/v1/guides/feature
 There is a `settings.json` file which you can edit to change shortcuts, the model, 
 prompts, whether to use shell scripts and what they are, and other settings.
 
+After updating, click the tray icon and select "Load Settings" or restart it.
+
 On mac, It's at `~/Library/Application Support/today.jason.plock/settings.json`.
 
 On linux, I think it's `~/$XDG_DATA_HOME/today.jason.plock/settings.json`.
