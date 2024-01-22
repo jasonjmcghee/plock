@@ -1,11 +1,6 @@
 # Plock
-Because you pluck then plop. I know very creative.
 
-**100% Local** by default. (If you want to use an API or something, [you can call any shell script you want](https://github.com/jasonjmcghee/plock/blob/d82b9286fcad310e3045970a401b2a6e1399309d/src-tauri/src/generator.rs#L32) - just [set `USE_OLLAMA` to `false`](https://github.com/jasonjmcghee/plock/blob/d82b9286fcad310e3045970a401b2a6e1399309d/src-tauri/src/main.rs#L20))
-
-## What is this?
-
-Ever wanted to use an LLM directly in an app without using a chat ui or terminal? That's what this does.
+Use an LLM directly from literally anywhere you can type.
 
 Write a prompt, select it, and hit `Cmd+Shift+.`. It will replace your prompt with the output in a streaming fashion.
 
@@ -13,16 +8,18 @@ Also! You can first put something on your clipboard (as in copy some text) befor
 
 For Linux, use `Ctrl` instead of `Cmd`.
 
-Note: Something not work properly? I won't know! Please log an issue or take a crack at fixing it yourself and submitting a PR! Have feature ideas? Log an issue!
+**100% Local** by default. (If you want to use an API or something, [you can call any shell script you want](https://github.com/jasonjmcghee/plock/blob/d82b9286fcad310e3045970a401b2a6e1399309d/src-tauri/src/generator.rs#L32) - just [set `USE_OLLAMA` to `false`](https://github.com/jasonjmcghee/plock/blob/d82b9286fcad310e3045970a401b2a6e1399309d/src-tauri/src/main.rs#L20))
 
-## Demo of Ollama
+_Note: Something not work properly? I won't know! Please log an issue or take a crack at fixing it yourself and submitting a PR! Have feature ideas? Log an issue!_
+
+## Demo using Ollama
 <a href="https://www.loom.com/share/fed267e695d145c88e6bff7e631da8e0">
   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/fed267e695d145c88e6bff7e631da8e0-with-play.gif">
 </a>
 
 (in the video I mention [rem](https://github.com/jasonjmcghee/rem), another project I'm working on)
 
-## Demo of GPT-3.5 and GPT-4
+## Demo using GPT-3.5 and GPT-4
 <a href="https://www.loom.com/share/756220f3f5e249d5b4d5b759e9f9add3">
   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/756220f3f5e249d5b4d5b759e9f9add3-with-play.gif">
 </a>
