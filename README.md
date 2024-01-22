@@ -34,6 +34,8 @@ Shortcuts:
 
 `Ctrl / Cmd + Shift + /`: Feed whatever is on your clipboard as "context" and the replace the selected text with the output of the model.
 
+`Escape`: Stop any streaming output
+
 **Mac** will request access to keyboard accessibility.
 
 **Linux** (untested), may require X11 libs for clipboard stuff and key simulation using enigo. [Helpful instructions](https://github.com/enigo-rs/enigo/tree/main#runtime-dependencies)
