@@ -2,6 +2,9 @@
 
 Use an LLM (or anything else that can stream to stdout) directly from literally anywhere you can type. Outputs in real time.
 
+![demo](https://github.com/jasonjmcghee/plock/assets/1522149/737cb647-69aa-426c-884d-bbe29bac0637)
+
+
 Write a prompt, select it, and (by default) hit `Cmd+Shift+.`. It will replace your prompt with the output in a streaming fashion.
 
 Also! You can first put something on your clipboard (as in copy some text) before writing / selecting your prompt, and it (by default) `Cmd+Shift+/` and it will use the copied text as context to answer your prompt.
