@@ -1,7 +1,7 @@
 {
   "build": {
-    "beforeBuildCommand": "mkdir -p dist",
-    "beforeDevCommand": "mkdir -p dist",
+    "beforeBuildCommand": "mkdir -p dist && bun run build",
+    "beforeDevCommand": "mkdir -p dist && bun run dev",
     "devPath": "../dist",
     "distDir": "../dist"
   },
