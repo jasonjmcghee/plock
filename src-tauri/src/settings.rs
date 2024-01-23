@@ -62,7 +62,16 @@ impl Default for Settings {
         Self {
             environment: HashMap::new(),
             ollama: Ollama {
-                enabled: true,
+                enabled: {
+                    #[cfg(not(target_os = "windows"))]
+                    {
+                        true
+                    }
+                    #[cfg(target_os = "windows")]
+                    {
+                        false
+                    }
+                },
                 ollama_model: "openhermes2.5-mistral".to_string(),
             },
             custom_commands: CustomCommands {
