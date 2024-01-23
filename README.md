@@ -57,7 +57,7 @@ Also [system tray icons require some extras](https://tauri.app/v1/guides/feature
 
 ## [Settings]
 
-There is a `settings.json` file which you can edit to change shortcuts, the model, 
+There is a `settings.json` file which you can edit to change shortcuts, the model,
 prompts, whether to use shell scripts and what they are, and other settings.
 
 After updating, click the tray icon and select "Load Settings" or restart it.
@@ -107,8 +107,8 @@ Correct me if any of these are wrong.
     ]
   },
   "shortcuts": {
-    "basic": "CmdOrControl+Shift+.",
-    "with_context": "CmdOrControl+Shift+/"
+    "basic": "Command+Shift+.",
+    "with_context": "Command+Shift+/"
   }
 }
 ```

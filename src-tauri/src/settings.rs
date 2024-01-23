@@ -89,8 +89,28 @@ impl Default for Settings {
                 ],
             },
             shortcuts: Shortcuts {
-                basic: "CmdOrControl+Shift+.".to_string(),
-                with_context: "CmdOrControl+Shift+/".to_string(),
+                basic: {
+                    #[cfg(target_os = "macos")]
+                    {
+                        // For Mac, use Command key
+                        "Command+Shift+.".to_string()
+                    }
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        "Ctrl+Shift+.".to_string()
+                    }
+                },
+                with_context: {
+                    #[cfg(target_os = "macos")]
+                    {
+                        // For Mac, use Command key
+                        "Command+Shift+/".to_string()
+                    }
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        "Ctrl+Shift+/".to_string()
+                    }
+                },
             },
         }
     }
