@@ -260,18 +260,18 @@ fn get_context(
         }
     };
 
-    let pieces = with_context_prompt.split("{}");
+    let mut pieces = with_context_prompt.split("{}");
     let mut final_prompt = "".to_string();
     // Before {}
-    final_prompt.push_str(pieces.clone().next().unwrap());
+    final_prompt.push_str(pieces.next().unwrap());
     // Replace first {} with context
     final_prompt.push_str(&context);
     // After first {}, before second {}
-    final_prompt.push_str(pieces.clone().next().unwrap());
+    final_prompt.push_str(pieces.next().unwrap());
     // Replace second {} with user_prompt
     final_prompt.push_str(&user_prompt);
     // After second {}
-    final_prompt.push_str(pieces.clone().next().unwrap());
+    final_prompt.push_str(pieces.next().unwrap());
     final_prompt
 }
 
