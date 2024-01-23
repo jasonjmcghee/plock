@@ -137,25 +137,24 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source $HOME/.cargo/env
 ```
 
-### Bun
+### ~~Bun~~ NPM
+_Whattt?? Why?_ - well, windows doesn't support `bun` in github actions afaict. So, I'm using npm instead.
 
-```bash
-curl https://bun.sh/install | bash
-```
+[How to Install Node](https://nodejs.org/en/download/package-manager)
 
 ## Project Setup
 
 ```bash
 git clone <repo_url>
 cd path/to/project
-bun install
-bun run tauri dev
+npm install
+npm run tauri dev
 ```
 
 ## Build
 
 ```bash
-bun run tauri build
+npm run tauri build
 ```
 
 ## Another demo

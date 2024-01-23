@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::{sync::Arc, thread};
-use tauri::{ActivationPolicy, AppHandle, CustomMenuItem, GlobalShortcutManager, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent};
+use tauri::{AppHandle, CustomMenuItem, GlobalShortcutManager, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent};
 use tokio::runtime::Runtime;
 use tokio_stream::StreamExt;
 use crate::settings::SETTINGS;
@@ -129,6 +129,7 @@ fn main() {
 
             #[cfg(target_os = "macos")]
             {
+                use tauri::ActivationPolicy;
                 app.set_activation_policy(ActivationPolicy::Accessory);
             }
 

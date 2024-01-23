@@ -33,10 +33,11 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v1
+      - name: Sync node version and setup cache
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 'lts/*'
+          cache: 'npm'
 
       - name: Install frontend dependencies
         run: bun install
