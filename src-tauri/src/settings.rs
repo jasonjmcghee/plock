@@ -1,4 +1,3 @@
-
 use serde::{Deserialize, Serialize};
 use std::{env, fs, path::Path};
 use std::collections::HashMap;
@@ -6,128 +5,85 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use lazy_static::lazy_static;
 use tauri::{command, AppHandle};
+use crate::settings::Step::WriteTextToScreen;
 
 lazy_static! {
     pub static ref SETTINGS: Mutex<Settings> = Mutex::new(Settings::default());
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Ollama {
-    pub enabled: bool,
-    pub ollama_model: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Shortcuts {
-    pub basic: String,
-    pub with_context: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CustomCommand {
-    pub name: String,
-    pub command: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CustomPrompt {
-    pub name: String,
-    pub prompt: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CustomPrompts {
-    pub basic_index: usize,
-    pub with_context_index: usize,
-    pub custom_prompts: Vec<CustomPrompt>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CustomCommands {
-    pub index: usize,
-    pub custom_commands: Vec<CustomCommand>,
-}
-
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Settings {
     pub environment: HashMap<String, String>,
-    pub ollama: Ollama,
-    pub custom_commands: CustomCommands,
-    pub custom_prompts: CustomPrompts,
-    pub shortcuts: Shortcuts,
+    pub processes: Vec<ProcessType>,
+    pub prompts: Vec<CustomPrompt>,
+    pub triggers: Vec<Trigger>,
+}
+
+impl Settings {
+    pub fn add_env_var(&mut self, key: String, value: String) {
+        env::set_var(key.clone(), value.clone());
+        self.environment.insert(key, value);
+    }
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            environment: HashMap::new(),
-            ollama: Ollama {
-                enabled: {
-                    #[cfg(not(target_os = "windows"))]
-                    {
-                        true
-                    }
-                    #[cfg(target_os = "windows")]
-                    {
-                        false
-                    }
+            environment: HashMap::from([
+                ("OLLAMA_MODEL".to_string(), "openhermes2.5-mistral".to_string())
+            ]),
+            processes: vec![
+                ProcessType::Ollama,
+                ProcessType::Command(
+                    ["bash", "/path/to/gpt.sh"].iter().map(|s| s.to_string()).collect()
+                ),
+            ],
+            prompts: vec![
+                CustomPrompt {
+                    name: "default basic".to_string(),
+                    prompt: "$SELECTION".to_string(),
                 },
-                ollama_model: "openhermes2.5-mistral".to_string(),
-            },
-            custom_commands: CustomCommands {
-                index: 0,
-                custom_commands: vec![
-                    CustomCommand {
-                        name: "gpt".to_string(),
-                        command: ["bash", "/path/to/gpt.sh"].iter().map(|s| s.to_string()).collect(),
-                    },
-                ],
-            },
-            custom_prompts: CustomPrompts {
-                basic_index: 0,
-                with_context_index: 1,
-                custom_prompts: vec![
-                    CustomPrompt {
-                        name: "default basic".to_string(),
-                        prompt: "{}".to_string(),
-                    },
-                    CustomPrompt {
-                        name: "default with context".to_string(),
-                        prompt: "I will ask you to do something. Below is some extra context to help do what I ask. --------- {} --------- Given the above context, please, {}. DO NOT OUTPUT ANYTHING ELSE.".to_string(),
-                    },
-                ],
-            },
-            shortcuts: Shortcuts {
-                basic: {
-                    #[cfg(target_os = "macos")]
-                    {
-                        // For Mac, use Command key
-                        "Command+Shift+.".to_string()
-                    }
-                    #[cfg(not(target_os = "macos"))]
-                    {
-                        "Ctrl+Shift+.".to_string()
-                    }
+                CustomPrompt {
+                    name: "default with context".to_string(),
+                    prompt: "I will ask you to do something. Below is some extra context to help do what I ask. --------- $CLIPBOARD --------- Given the above context, please, $SELECTION. DO NOT OUTPUT ANYTHING ELSE.".to_string(),
                 },
-                with_context: {
-                    #[cfg(target_os = "macos")]
-                    {
-                        // For Mac, use Command key
-                        "Command+Shift+/".to_string()
-                    }
-                    #[cfg(not(target_os = "macos"))]
-                    {
-                        "Ctrl+Shift+/".to_string()
-                    }
+            ],
+            triggers: vec![
+                Trigger {
+                    trigger_with_shortcut: Some({
+                        #[cfg(target_os = "macos")]
+                        {
+                            // For Mac, use Command key
+                            "Command+Shift+.".to_string()
+                        }
+                        #[cfg(not(target_os = "macos"))]
+                        {
+                            "Ctrl+Shift+.".to_string()
+                        }
+                    }),
+                    process: 0,
+                    prompt: 0,
+                    next_steps: vec![WriteTextToScreen],
                 },
-            },
+                Trigger {
+                    trigger_with_shortcut: Some({
+                        #[cfg(target_os = "macos")]
+                        {
+                            // For Mac, use Command key
+                            "Command+Shift+/".to_string()
+                        }
+                        #[cfg(not(target_os = "macos"))]
+                        {
+                            "Ctrl+Shift+/".to_string()
+                        }
+                    }),
+                    process: 0,
+                    prompt: 1,
+                    next_steps: vec![WriteTextToScreen],
+                },
+            ],
         }
     }
-}
-
-pub fn save_current_settings(app_handle: AppHandle) -> Result<(), String> {
-    save_settings(app_handle, &SETTINGS.lock().unwrap())?;
-    Ok(())
 }
 
 #[command]
@@ -145,12 +101,13 @@ pub fn load_settings(app_handle: AppHandle) -> Result<(), String> {
         let data = fs::read_to_string(path).map_err(|e| e.to_string())?;
         serde_json::from_str(&data).map_err(|e| e.to_string())?
     } else {
-        save_current_settings(app_handle)?;
         Settings::default()
     };
     for (key, value) in settings.environment.iter() {
-        env::set_var(key, value);
+        { SETTINGS.lock().unwrap().add_env_var(key.clone(), value.clone()); }
     }
+    // Ensures any newly introduced fields are stored in the settings file
+    save_settings(app_handle, &settings)?;
     *SETTINGS.lock().unwrap() = settings;
     Ok(())
 }
@@ -172,3 +129,57 @@ pub fn ensure_local_data_dir(app_handle: AppHandle) -> Result<String, ()> {
     }
     Err(())
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Ollama {
+    pub model: String,
+}
+
+impl Default for Ollama {
+    fn default() -> Self {
+        Self {
+            model: "openhermes2.5-mistral".to_string(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum ProcessType {
+    Ollama,
+    Command(Vec<String>),
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum Step {
+    WriteTextToScreen,
+    StoreAsEnvVar(String),
+    Trigger(usize),
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Trigger {
+    pub trigger_with_shortcut: Option<String>,
+    pub process: usize,
+    pub prompt: usize,
+    pub next_steps: Vec<Step>,
+}
+
+impl Default for Trigger {
+    fn default() -> Self {
+        Self {
+            trigger_with_shortcut: None,
+            process: 0,
+            prompt: 0,
+            next_steps: vec![WriteTextToScreen],
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CustomPrompt {
+    pub name: String,
+    pub prompt: String,
+}
+
