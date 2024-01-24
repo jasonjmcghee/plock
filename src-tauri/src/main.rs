@@ -1,13 +1,20 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+extern crate core;
+
 use crate::generator::{generate};
+use base64::decode;
 use enigo::{Direction, Enigo, Key, Keyboard};
 use rdev::{listen, EventType, Key as RdevKey};
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::{env, sync::Arc, thread};
+use std::borrow::Cow;
+use std::io::Cursor;
+use arboard::ImageData;
+use image::{EncodableLayout, ImageFormat, ImageOutputFormat, load_from_memory};
 use tauri::{AppHandle, CustomMenuItem, GlobalShortcutManager, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent};
 use tokio::runtime::Runtime;
 use tokio_stream::StreamExt;
@@ -101,7 +108,7 @@ fn main() {
                         .lock()
                         .unwrap()
                         .get_text()
-                        .expect("Failed to get clipboard contents.")
+                        .unwrap_or("".to_string())
                 };
                 let cloned_contents = original_clipboard_contents.clone();
                 {
@@ -260,6 +267,8 @@ fn trigger_action(
     println!("CLIPBOARD: {:?}", env::var_os("CLIPBOARD"));
     println!("SELECTION: {:?}", env::var_os("SELECTION"));
 
+    let app_handle_clone = app_handle.clone();
+
     rt.spawn_blocking(move || {
         tokio::runtime::Handle::current().block_on(async {
             let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
@@ -301,7 +310,7 @@ fn trigger_action(
                     };
 
                     for step in trigger.next_steps.clone() {
-                        if let Step::WriteTextToScreen = step {
+                        if let Step::StreamTextToScreen = step {
                             enigo.fast_text(&delta_output).expect("Failed to type out text");
                         }
                     }
@@ -321,7 +330,7 @@ fn trigger_action(
 
                     for step in trigger.next_steps {
                         match step {
-                            Step::WriteTextToScreen => {
+                            Step::StreamTextToScreen => {
                                 enigo.fast_text(&delta_output).expect("Failed to type out text");
                             }
                             Step::StoreAsEnvVar(key) => {
@@ -330,6 +339,63 @@ fn trigger_action(
                             Step::Trigger(i) => {
                                 index.store(i, Ordering::SeqCst);
                                 should_continue = true;
+                            }
+                            Step::WriteFinalTextToScreen => {
+                                enigo.fast_text(&whole_output).expect("Failed to type out text");
+                            }
+                            Step::WriteImageToScreen => {
+                                let image_data = decode(&whole_output.trim()).expect("Failed to decode base64 string");
+
+                                // Convert binary data to an image format (PNG)
+                                let img = load_from_memory(&image_data).expect("Failed to load image from memory");
+                                // let mut cursor = Cursor::new(Vec::new());
+                                let rgba = img.into_rgba8();
+                                let image = ImageData {
+                                    bytes: Cow::from(rgba.as_bytes()),
+                                    width: rgba.width() as usize,
+                                    height: rgba.height() as usize,
+                                };
+
+                                // img.write_to(&mut cursor, ImageOutputFormat::Png).expect("Failed to write image as PNG");
+                                // img.
+
+                                {
+                                    let mut handle = app_handle_clone.lock().unwrap();
+                                    // let local_data_dir = handle.as_mut().unwrap()
+                                    //     .path_resolver().app_local_data_dir().unwrap();
+                                    // let fpath = local_data_dir.join("test.png").to_str().unwrap().to_string();
+                                    // img.save_with_format(fpath, ImageFormat::Png)
+                                    //     .expect("Failed to save image as PNG");
+                                };
+
+                                // Copy the image to the clipboard
+                                {
+                                    let mut handle = app_handle_clone.lock().unwrap();
+                                    handle
+                                        .as_mut()
+                                        .unwrap()
+                                        .clipboard_manager()
+                                        .clipboard
+                                        .lock()
+                                        .unwrap()
+                                        .set_image(image)
+                                        .expect("Failed to copy image to clipboard");
+                                };
+                                let key = {
+                                    #[cfg(target_os = "macos")]
+                                    {
+                                        // For Mac, use Command key
+                                        Key::Meta
+                                    }
+                                    #[cfg(not(target_os = "macos"))]
+                                    {
+                                        // For Windows and Linux, use Ctrl key
+                                        Key::LControl
+                                    }
+                                };
+                                enigo.key(key, Direction::Press).expect("Failed to paste image");
+                                enigo.key(Key::Unicode('v'), Direction::Click).expect("Failed to paste image");
+                                enigo.key(key, Direction::Release).expect("Failed to paste image");
                             }
                         }
                     }

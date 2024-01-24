@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use lazy_static::lazy_static;
 use tauri::{command, AppHandle};
-use crate::settings::Step::WriteTextToScreen;
+use crate::settings::Step::StreamTextToScreen;
 
 lazy_static! {
     pub static ref SETTINGS: Mutex<Settings> = Mutex::new(Settings::default());
@@ -63,7 +63,7 @@ impl Default for Settings {
                     }),
                     process: 0,
                     prompt: 0,
-                    next_steps: vec![WriteTextToScreen],
+                    next_steps: vec![StreamTextToScreen],
                 },
                 Trigger {
                     trigger_with_shortcut: Some({
@@ -79,7 +79,7 @@ impl Default for Settings {
                     }),
                     process: 0,
                     prompt: 1,
-                    next_steps: vec![WriteTextToScreen],
+                    next_steps: vec![StreamTextToScreen],
                 },
             ],
         }
@@ -144,16 +144,18 @@ impl Default for Ollama {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ProcessType {
     Ollama,
     Command(Vec<String>),
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum Step {
-    WriteTextToScreen,
+    StreamTextToScreen,
+    WriteFinalTextToScreen,
+    WriteImageToScreen,
     StoreAsEnvVar(String),
     Trigger(usize),
 }
@@ -172,7 +174,7 @@ impl Default for Trigger {
             trigger_with_shortcut: None,
             process: 0,
             prompt: 0,
-            next_steps: vec![WriteTextToScreen],
+            next_steps: vec![StreamTextToScreen],
         }
     }
 }
