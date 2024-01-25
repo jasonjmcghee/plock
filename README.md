@@ -14,7 +14,7 @@ it (by default) `Cmd+Shift+/` and it will use the copied text as context to answ
 For Linux, use `Ctrl` instead of `Cmd`.
 
 **100% Local** by default. (If you want to use an API or something, you can call any shell script you want specified
-in `settings.json` - just set `ollama.enabled` to `false` in `settings.json`)
+in `settings.json`)
 
 I show an example `settings.json` in [Settings](#settings)
 
@@ -85,42 +85,120 @@ Correct me if any of these are wrong.
 
 ```json
 {
-  "environment": {},
-  "ollama": {
-    "enabled": true,
-    "ollama_model": "openhermes2.5-mistral"
+  "environment": {
+    "PERPLEXITY_API": "",
+    "OLLAMA_MODEL": "openhermes2.5-mistral",
+    "OPENAI_API": ""
   },
-  "custom_commands": {
-    "index": 0,
-    "custom_commands": [
-      {
-        "name": "gpt",
-        "command": [
-          "bash",
-          "/Users/jason/workspace/plock/scripts/gpt.sh"
-        ]
-      }
-    ]
-  },
-  "custom_prompts": {
-    "basic_index": 0,
-    "with_context_index": 1,
-    "custom_prompts": [
-      {
-        "name": "default basic",
-        "prompt": "Say hello, then {}"
-      },
-      {
-        "name": "default with context",
-        "prompt": "I will ask you to do something. Below is some extra context to help do what I ask. --------- {} --------- Given the above context, please, {}. DO NOT OUTPUT ANYTHING ELSE."
-      }
-    ]
-  },
-  "shortcuts": {
-    "basic": "Command+Shift+.",
-    "with_context": "Command+Shift+/"
-  }
+  "processes": [
+    {
+      "command": [
+        "bash",
+        "/Users/jason/workspace/plock/scripts/gpt.sh"
+      ]
+    },
+    {
+      "command": []
+    },
+    {
+      "command": [
+        "bash",
+        "/Users/jason/workspace/plock/scripts/p.sh"
+      ]
+    },
+    {
+      "command": [
+        "bash",
+        "/Users/jason/workspace/plock/scripts/dalle.sh"
+      ]
+    },
+    "ollama"
+  ],
+  "prompts": [
+    {
+      "name": "default basic",
+      "prompt": "$SELECTION"
+    },
+    {
+      "name": "default with context",
+      "prompt": "I will ask you to do something. Below is some extra context to help do what I ask. --------- $CLIPBOARD --------- Given the above context, please, $SELECTION. DO NOT OUTPUT ANYTHING ELSE."
+    },
+    {
+      "name": "step",
+      "prompt": "$STEP"
+    },
+    {
+      "name": "say gpt",
+      "prompt": "say \"$GPT\""
+    }
+  ],
+  "triggers": [
+    {
+      "trigger_with_shortcut": "Command+Shift+,",
+      "process": 1,
+      "prompt": 0,
+      "next_steps": [
+        {
+          "store_as_env_var": "STEP"
+        },
+        {
+          "trigger": 4
+        }
+      ],
+      "selection_action": null
+    },
+    {
+      "trigger_with_shortcut": "Command+Shift+.",
+      "process": 0,
+      "prompt": 0,
+      "next_steps": [
+        "stream_text_to_screen"
+      ],
+      "selection_action": "newline"
+    },
+    {
+      "trigger_with_shortcut": "Command+Shift+/",
+      "process": 1,
+      "prompt": 0,
+      "next_steps": [
+        "write_final_text_to_screen"
+      ],
+      "selection_action": "newline"
+    },
+    {
+      "trigger_with_shortcut": "Command+Shift+'",
+      "process": 3,
+      "prompt": 0,
+      "next_steps": [
+        "write_image_to_screen"
+      ],
+      "selection_action": null
+    },
+    {
+      "trigger_with_shortcut": null,
+      "process": 0,
+      "prompt": 2,
+      "next_steps": [
+        "stream_text_to_screen",
+        {
+          "store_as_env_var": "GPT"
+        },
+        {
+          "trigger": 5
+        }
+      ],
+      "selection_action": null
+    },
+    {
+      "trigger_with_shortcut": null,
+      "process": 0,
+      "prompt": 3,
+      "next_steps": [],
+      "selection_action": null
+    }
+  ]
 }
+
 ```
 
 </details>
