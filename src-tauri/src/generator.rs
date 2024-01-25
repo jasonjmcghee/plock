@@ -81,6 +81,7 @@ pub(crate) async fn generate(
                     return Box::pin(async_stream::stream! { yield e.to_string() });
                 }
             };
+
             let stdout = BufReader::new(child.stdout.expect("Failed to take stdout of child"));
 
             let stream = async_stream::stream! {

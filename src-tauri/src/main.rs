@@ -3,21 +3,24 @@
 
 extern crate core;
 
-use crate::generator::{generate};
+use crate::generator::generate;
+use crate::settings::{SelectionAction, Step, SETTINGS};
+use arboard::ImageData;
 use base64::decode;
 use enigo::{Direction, Enigo, InputResult, Key, Keyboard};
+use image::{load_from_memory, EncodableLayout};
 use rdev::{listen, EventType, Key as RdevKey};
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::{env, sync::Arc, thread};
-use std::borrow::Cow;
-use arboard::ImageData;
-use image::{EncodableLayout, load_from_memory};
-use tauri::{AppHandle, CustomMenuItem, GlobalShortcutManager, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent};
+use tauri::{
+    AppHandle, CustomMenuItem, GlobalShortcutManager, Manager, SystemTray, SystemTrayEvent,
+    SystemTrayMenu, SystemTrayMenuItem, WindowEvent,
+};
 use tokio::runtime::Runtime;
 use tokio_stream::StreamExt;
-use crate::settings::{SelectionAction, SETTINGS, Step};
 
 #[cfg(feature = "ocr")]
 mod ocr;
@@ -28,9 +31,8 @@ mod settings;
 fn make_tray() -> SystemTray {
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let load_settings = CustomMenuItem::new("load_settings".to_string(), "Load Settings");
-    let settings_location = CustomMenuItem::new(
-        "settings_location".to_string(), "<Settings Location>",
-    ).disabled();
+    let settings_location =
+        CustomMenuItem::new("settings_location".to_string(), "<Settings Location>").disabled();
     let tray_menu = SystemTrayMenu::new()
         .add_item(load_settings)
         .add_item(settings_location)
@@ -123,7 +125,7 @@ fn main() {
                 );
             }
         })
-            .expect("Failed to listen to keypresses.");
+        .expect("Failed to listen to keypresses.");
     });
 
     tauri::Builder::default()
@@ -173,9 +175,8 @@ fn main() {
                     match id.as_str() {
                         "quit" => std::process::exit(0),
                         "load_settings" => {
-                            settings::load_settings(
-                                app.app_handle().clone()
-                            ).expect("Failed to load settings.");
+                            settings::load_settings(app.app_handle().clone())
+                                .expect("Failed to load settings.");
                         }
                         _ => {}
                     }
@@ -225,10 +226,7 @@ fn handle_selection(selection_action: SelectionAction) {
     }
 }
 
-fn get_context(
-    app_handle: Arc<Mutex<Option<AppHandle>>>,
-    pipeline_index: Arc<AtomicUsize>,
-) {
+fn get_context(app_handle: Arc<Mutex<Option<AppHandle>>>, pipeline_index: Arc<AtomicUsize>) {
     println!("preparing to copy text...");
     let selection_action = {
         let settings = SETTINGS.lock().unwrap();
@@ -251,7 +249,12 @@ fn get_context(
             .expect("Failed to get clipboard.")
     };
 
-    { SETTINGS.lock().unwrap().add_env_var("SELECTION".to_string(), user_prompt.clone()); }
+    {
+        SETTINGS
+            .lock()
+            .unwrap()
+            .add_env_var("SELECTION".to_string(), user_prompt.clone());
+    }
 
     println!("copied... {}", user_prompt);
 
@@ -264,7 +267,12 @@ fn get_context(
                 panic!("Failed to get text on screen: {}", e);
             }
         };
-        { SETTINGS.lock().unwrap().add_env_var("OCR".to_string(), text_on_screen.clone()); }
+        {
+            SETTINGS
+                .lock()
+                .unwrap()
+                .add_env_var("OCR".to_string(), text_on_screen.clone());
+        }
     }
 }
 
@@ -277,12 +285,14 @@ fn trigger_action(
     pipeline_index: Arc<AtomicUsize>,
 ) {
     let exit_flag_thread = exit_flag.clone();
-    { SETTINGS.lock().unwrap().add_env_var("CLIPBOARD".to_string(), original_clipboard_contents.clone()); }
+    {
+        SETTINGS
+            .lock()
+            .unwrap()
+            .add_env_var("CLIPBOARD".to_string(), original_clipboard_contents.clone());
+    }
 
-    get_context(
-        app_handle.clone(),
-        pipeline_index.clone(),
-    );
+    get_context(app_handle.clone(), pipeline_index.clone());
     println!("CLIPBOARD: {:?}", env::var_os("CLIPBOARD"));
     println!("SELECTION: {:?}", env::var_os("SELECTION"));
 
@@ -311,13 +321,6 @@ fn trigger_action(
 
                 let mut whole_buffer = Vec::new();
                 let mut delta_buffer = Vec::new();
-
-                // Why are we deleting and rewriting? something strange with enigo or something is getting locked up
-                if let SelectionAction::Newline = trigger.selection_action.clone().unwrap_or(SelectionAction::Remove) {
-                    let to_insert = format!("{}\n\n", env::var_os("SELECTION").unwrap().to_string_lossy());
-                    whole_buffer.insert(0, to_insert.clone());
-                    delta_buffer.insert(0, to_insert);
-                }
 
                 let mut did_exit = false;
 
@@ -364,13 +367,31 @@ fn trigger_action(
                                 }
                             }
                             Step::StoreAsEnvVar(key) => {
-                                { SETTINGS.lock().unwrap().add_env_var(key, whole_output.clone()); }
+                                SETTINGS
+                                    .lock()
+                                    .unwrap()
+                                    .add_env_var(key, whole_output.clone());
                             }
                             Step::Trigger(i) => {
                                 index.store(i, Ordering::SeqCst);
                                 should_continue = true;
                             }
                             Step::WriteFinalTextToScreen => {
+                                let mut final_buffer = whole_buffer.clone();
+                                // Why are we deleting and rewriting? something strange with enigo or something is getting locked up
+                                if let SelectionAction::Newline = trigger
+                                    .selection_action
+                                    .clone()
+                                    .unwrap_or(SelectionAction::Remove)
+                                {
+                                    let to_insert = format!(
+                                        "{}\n\n",
+                                        env::var_os("SELECTION").unwrap().to_string_lossy()
+                                    );
+                                    final_buffer.insert(0, to_insert.clone());
+                                }
+                                let final_buffer_output = final_buffer.join("");
+
                                 {
                                     let mut handle = app_handle_clone.lock().unwrap();
                                     handle
@@ -380,17 +401,19 @@ fn trigger_action(
                                         .clipboard
                                         .lock()
                                         .unwrap()
-                                        .set_text(&whole_output)
+                                        .set_text(&final_buffer_output)
                                         .expect("Failed to copy image to clipboard");
                                 };
 
                                 paste(&mut enigo);
                             }
                             Step::WriteImageToScreen => {
-                                let image_data = decode(&whole_output.trim()).expect("Failed to decode base64 string");
+                                let image_data = decode(&whole_output.trim())
+                                    .expect("Failed to decode base64 string");
 
                                 // Convert binary data to an image format (PNG)
-                                let img = load_from_memory(&image_data).expect("Failed to load image from memory");
+                                let img = load_from_memory(&image_data)
+                                    .expect("Failed to load image from memory");
                                 // let mut cursor = Cursor::new(Vec::new());
                                 let rgba = img.into_rgba8();
                                 let image = ImageData {
@@ -446,10 +469,18 @@ fn trigger_action(
 }
 
 fn paste(enigo: &mut Enigo) {
-    enigo.key(Key::Meta, Direction::Click).expect("Failed to paste text");
-    enigo.key(Key::Meta, Direction::Press).expect("Failed to paste text");
+    enigo
+        .key(Key::Meta, Direction::Release)
+        .expect("Failed to paste text");
+    enigo
+        .key(Key::Meta, Direction::Press)
+        .expect("Failed to paste text");
     // This keeps causing a bad access in `unsafe`: enigo-0.2.0-rc2/src/macos/macos_impl.rs:631
     // enigo.key(Key::Unicode('v'), Direction::Click).expect("Failed to paste text");
-    enigo.raw(9, Direction::Click).expect("Failed to paste text");
-    enigo.key(Key::Meta, Direction::Release).expect("Failed to paste text");
+    enigo
+        .raw(9, Direction::Click)
+        .expect("Failed to paste text");
+    enigo
+        .key(Key::Meta, Direction::Release)
+        .expect("Failed to paste text");
 }
