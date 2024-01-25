@@ -5,16 +5,15 @@ extern crate core;
 
 use crate::generator::{generate};
 use base64::decode;
-use enigo::{Direction, Enigo, Key, Keyboard};
+use enigo::{Direction, Enigo, InputResult, Key, Keyboard};
 use rdev::{listen, EventType, Key as RdevKey};
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::{env, sync::Arc, thread};
 use std::borrow::Cow;
-use std::io::Cursor;
 use arboard::ImageData;
-use image::{EncodableLayout, ImageFormat, ImageOutputFormat, load_from_memory};
+use image::{EncodableLayout, load_from_memory};
 use tauri::{AppHandle, CustomMenuItem, GlobalShortcutManager, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent};
 use tokio::runtime::Runtime;
 use tokio_stream::StreamExt;
@@ -230,7 +229,7 @@ fn get_context(
             .lock()
             .unwrap()
             .get_text()
-            .expect("Failed to restore clipboard.")
+            .expect("Failed to get clipboard.")
     };
 
     { SETTINGS.lock().unwrap().add_env_var("SELECTION".to_string(), user_prompt.clone()); }
@@ -271,9 +270,8 @@ fn trigger_action(
 
     rt.spawn_blocking(move || {
         tokio::runtime::Handle::current().block_on(async {
-            let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
-
             let index = pipeline_index.clone();
+            let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
 
             loop {
                 // Create a pipe here so that we can shove output to other processes
@@ -295,35 +293,37 @@ fn trigger_action(
                 let mut delta_buffer = Vec::new();
                 let mut did_exit = false;
 
-                while let Some(response) = response_stream.next().await {
-                    whole_buffer.push(response.clone());
-                    delta_buffer.push(response);
+                {
+                    while let Some(response) = response_stream.next().await {
+                        whole_buffer.push(response.clone());
+                        delta_buffer.push(response);
 
-                    let delta_output = {
-                        if delta_buffer.len() > 4 {
-                            let s = delta_buffer.clone().join("");
-                            delta_buffer.clear();
-                            s
-                        } else {
-                            "".to_string()
+                        let delta_output = {
+                            if delta_buffer.len() > 4 {
+                                let s = delta_buffer.clone().join("");
+                                delta_buffer.clear();
+                                s
+                            } else {
+                                "".to_string()
+                            }
+                        };
+
+                        for step in trigger.next_steps.clone() {
+                            if let Step::StreamTextToScreen = step {
+                                enigo.text(&delta_output).expect("Failed to type out text");
+                            }
                         }
-                    };
 
-                    for step in trigger.next_steps.clone() {
-                        if let Step::StreamTextToScreen = step {
-                            enigo.fast_text(&delta_output).expect("Failed to type out text");
+                        // Exit loop if child process has finished or exit flag is set
+                        if exit_flag_thread.load(Ordering::SeqCst) {
+                            did_exit = true;
+                            break;
                         }
-                    }
-
-                    // Exit loop if child process has finished or exit flag is set
-                    if exit_flag_thread.load(Ordering::SeqCst) {
-                        did_exit = true;
-                        break;
                     }
                 }
 
                 let mut should_continue = false;
-                if !did_exit && !delta_buffer.is_empty() {
+                if !did_exit {
                     let delta_output = delta_buffer.join("");
                     let whole_output = whole_buffer.join("");
                     println!("Whole output: {}", whole_output);
@@ -331,7 +331,9 @@ fn trigger_action(
                     for step in trigger.next_steps {
                         match step {
                             Step::StreamTextToScreen => {
-                                enigo.fast_text(&delta_output).expect("Failed to type out text");
+                                if !delta_buffer.is_empty() {
+                                    enigo.text(&delta_output).expect("Failed to type out text");
+                                }
                             }
                             Step::StoreAsEnvVar(key) => {
                                 { SETTINGS.lock().unwrap().add_env_var(key, whole_output.clone()); }
@@ -341,7 +343,20 @@ fn trigger_action(
                                 should_continue = true;
                             }
                             Step::WriteFinalTextToScreen => {
-                                enigo.fast_text(&whole_output).expect("Failed to type out text");
+                                {
+                                    let mut handle = app_handle_clone.lock().unwrap();
+                                    handle
+                                        .as_mut()
+                                        .unwrap()
+                                        .clipboard_manager()
+                                        .clipboard
+                                        .lock()
+                                        .unwrap()
+                                        .set_text(&whole_output)
+                                        .expect("Failed to copy image to clipboard");
+                                };
+
+                                paste(&mut enigo);
                             }
                             Step::WriteImageToScreen => {
                                 let image_data = decode(&whole_output.trim()).expect("Failed to decode base64 string");
@@ -354,18 +369,6 @@ fn trigger_action(
                                     bytes: Cow::from(rgba.as_bytes()),
                                     width: rgba.width() as usize,
                                     height: rgba.height() as usize,
-                                };
-
-                                // img.write_to(&mut cursor, ImageOutputFormat::Png).expect("Failed to write image as PNG");
-                                // img.
-
-                                {
-                                    let mut handle = app_handle_clone.lock().unwrap();
-                                    // let local_data_dir = handle.as_mut().unwrap()
-                                    //     .path_resolver().app_local_data_dir().unwrap();
-                                    // let fpath = local_data_dir.join("test.png").to_str().unwrap().to_string();
-                                    // img.save_with_format(fpath, ImageFormat::Png)
-                                    //     .expect("Failed to save image as PNG");
                                 };
 
                                 // Copy the image to the clipboard
@@ -381,21 +384,7 @@ fn trigger_action(
                                         .set_image(image)
                                         .expect("Failed to copy image to clipboard");
                                 };
-                                let key = {
-                                    #[cfg(target_os = "macos")]
-                                    {
-                                        // For Mac, use Command key
-                                        Key::Meta
-                                    }
-                                    #[cfg(not(target_os = "macos"))]
-                                    {
-                                        // For Windows and Linux, use Ctrl key
-                                        Key::LControl
-                                    }
-                                };
-                                enigo.key(key, Direction::Press).expect("Failed to paste image");
-                                enigo.key(Key::Unicode('v'), Direction::Click).expect("Failed to paste image");
-                                enigo.key(key, Direction::Release).expect("Failed to paste image");
+                                paste(&mut enigo);
                             }
                         }
                     }
@@ -426,4 +415,12 @@ fn trigger_action(
             pressed_keys.lock().unwrap().clear();
         });
     });
+}
+
+fn paste(enigo: &mut Enigo) {
+    enigo.key(Key::Meta, Direction::Press).expect("Failed to paste text");
+    // This keeps causing a bad access in `unsafe`: enigo-0.2.0-rc2/src/macos/macos_impl.rs:631
+    // enigo.key(Key::Unicode('v'), Direction::Click).expect("Failed to paste text");
+    enigo.raw(9, Direction::Click).expect("Failed to paste text");
+    enigo.key(Key::Meta, Direction::Release).expect("Failed to paste text");
 }

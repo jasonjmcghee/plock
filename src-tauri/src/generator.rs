@@ -56,7 +56,6 @@ pub(crate) async fn generate(
                         .arg(final_context)
                         .stdout(Stdio::piped())
                         .spawn()
-                        .expect("Failed to spawn child process")
                 }
                 #[cfg(not(target_os = "windows"))]
                 {
@@ -66,7 +65,6 @@ pub(crate) async fn generate(
                         .arg(final_context)
                         .stdout(Stdio::piped())
                         .spawn()
-                        .expect("Failed to spawn child process")
                 }
             } else {
                 Command::new(&custom_command[0])
@@ -75,9 +73,14 @@ pub(crate) async fn generate(
                     .arg(&final_context)
                     .stdout(Stdio::piped())
                     .spawn()
-                    .expect("Failed to spawn child process")
             };
 
+            let child = match child {
+                Ok(child) => child,
+                Err(e) => {
+                    return Box::pin(async_stream::stream! { yield e.to_string() });
+                }
+            };
             let stdout = BufReader::new(child.stdout.expect("Failed to take stdout of child"));
 
             let stream = async_stream::stream! {
