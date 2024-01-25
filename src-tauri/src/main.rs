@@ -17,7 +17,7 @@ use image::{EncodableLayout, load_from_memory};
 use tauri::{AppHandle, CustomMenuItem, GlobalShortcutManager, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent};
 use tokio::runtime::Runtime;
 use tokio_stream::StreamExt;
-use crate::settings::{SETTINGS, Step};
+use crate::settings::{SelectionAction, SETTINGS, Step};
 
 #[cfg(feature = "ocr")]
 mod ocr;
@@ -146,21 +146,22 @@ fn main() {
                 app_handle.lock().unwrap().replace(app.handle().clone());
             }
 
-            {
+            let triggers_clone = {
                 let settings = SETTINGS.lock().unwrap();
+                settings.triggers.clone()
+            };
 
-                for (i, trigger) in settings.triggers.clone().iter().enumerate() {
-                    if let Some(shortcut) = trigger.trigger_with_shortcut.clone() {
-                        let trigger_index_clone = trigger_index.clone();
-                        let trigger_flag_second_clone = trigger_flag_clone.clone();
+            for (i, trigger) in triggers_clone.iter().enumerate() {
+                if let Some(shortcut) = trigger.trigger_with_shortcut.clone() {
+                    let trigger_index_clone = trigger_index.clone();
+                    let trigger_flag_second_clone = trigger_flag_clone.clone();
 
-                        app.global_shortcut_manager()
-                            .register(&shortcut, move || {
-                                trigger_index_clone.store(i, Ordering::SeqCst);
-                                trigger_flag_second_clone.store(true, Ordering::SeqCst);
-                            })
-                            .expect("Failed to register global shortcut");
-                    }
+                    app.global_shortcut_manager()
+                        .register(&shortcut, move || {
+                            trigger_index_clone.store(i, Ordering::SeqCst);
+                            trigger_flag_second_clone.store(true, Ordering::SeqCst);
+                        })
+                        .expect("Failed to register global shortcut");
                 }
             }
             Ok(())
@@ -191,16 +192,16 @@ fn main() {
         .expect("error while running tauri application");
 }
 
-fn copy_and_remove_selected_text() {
+fn handle_selection(selection_action: SelectionAction) {
     let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
     #[cfg(target_os = "macos")]
     {
         enigo.key(Key::Meta, Direction::Release).unwrap();
         // copy
         enigo.key(Key::Meta, Direction::Press).unwrap();
-        enigo.key(Key::Unicode('c'), Direction::Click).unwrap();
+        // enigo.key(Key::Unicode('c'), Direction::Click).unwrap();
+        enigo.raw(8, Direction::Click).unwrap();
         enigo.key(Key::Meta, Direction::Release).unwrap();
-        enigo.key(Key::Backspace, Direction::Click).unwrap();
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -209,15 +210,33 @@ fn copy_and_remove_selected_text() {
         enigo.key(Key::LControl, Direction::Press).unwrap();
         enigo.key(Key::Unicode('c'), Direction::Click).unwrap();
         enigo.key(Key::LControl, Direction::Release).unwrap();
-        enigo.key(Key::Backspace, Direction::Click).unwrap();
+    }
+
+    match selection_action {
+        SelectionAction::Remove => {
+            enigo.key(Key::Backspace, Direction::Click).unwrap();
+        }
+        SelectionAction::Newline => {
+            // Why are we deleting and rewriting? something strange with enigo or something is getting locked up
+            enigo.key(Key::Backspace, Direction::Click).unwrap();
+            // enigo.key(Key::RightArrow, Direction::Click).unwrap();
+            // enigo.text("\n\n").unwrap();
+        }
     }
 }
 
 fn get_context(
     app_handle: Arc<Mutex<Option<AppHandle>>>,
+    pipeline_index: Arc<AtomicUsize>,
 ) {
     println!("preparing to copy text...");
-    copy_and_remove_selected_text();
+    let selection_action = {
+        let settings = SETTINGS.lock().unwrap();
+        let i = pipeline_index.load(Ordering::SeqCst);
+        let trigger = settings.triggers[i].clone();
+        trigger.selection_action.unwrap_or(SelectionAction::Remove)
+    };
+    handle_selection(selection_action);
 
     let user_prompt = {
         let mut handle = app_handle.lock().unwrap();
@@ -262,6 +281,7 @@ fn trigger_action(
 
     get_context(
         app_handle.clone(),
+        pipeline_index.clone(),
     );
     println!("CLIPBOARD: {:?}", env::var_os("CLIPBOARD"));
     println!("SELECTION: {:?}", env::var_os("SELECTION"));
@@ -291,6 +311,14 @@ fn trigger_action(
 
                 let mut whole_buffer = Vec::new();
                 let mut delta_buffer = Vec::new();
+
+                // Why are we deleting and rewriting? something strange with enigo or something is getting locked up
+                if let SelectionAction::Newline = trigger.selection_action.clone().unwrap_or(SelectionAction::Remove) {
+                    let to_insert = format!("{}\n\n", env::var_os("SELECTION").unwrap().to_string_lossy());
+                    whole_buffer.insert(0, to_insert.clone());
+                    delta_buffer.insert(0, to_insert);
+                }
+
                 let mut did_exit = false;
 
                 {
@@ -418,6 +446,7 @@ fn trigger_action(
 }
 
 fn paste(enigo: &mut Enigo) {
+    enigo.key(Key::Meta, Direction::Click).expect("Failed to paste text");
     enigo.key(Key::Meta, Direction::Press).expect("Failed to paste text");
     // This keeps causing a bad access in `unsafe`: enigo-0.2.0-rc2/src/macos/macos_impl.rs:631
     // enigo.key(Key::Unicode('v'), Direction::Click).expect("Failed to paste text");

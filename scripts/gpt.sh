@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # From https://x.com/rauchg/status/1748961908370321474?s=20
+escape_json() {
+    echo -n "$1" | python -c 'import json,sys; print(json.dumps(sys.stdin.read()))'
+}
+
+prep=$(escape_json "$*")
+
 jq -n \
-		--arg content "$*" \
+		--arg content "$prep" \
 		'{
       "model": "gpt-3.5-turbo-1106",
       "messages": [
@@ -11,7 +17,7 @@ jq -n \
         },
         {
           "role": "user",
-          "content": ($content | tojson)
+          "content": $content
         }
       ],
       "stream": true

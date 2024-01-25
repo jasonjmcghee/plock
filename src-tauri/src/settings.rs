@@ -64,6 +64,7 @@ impl Default for Settings {
                     process: 0,
                     prompt: 0,
                     next_steps: vec![StreamTextToScreen],
+                    ..Trigger::default()
                 },
                 Trigger {
                     trigger_with_shortcut: Some({
@@ -80,6 +81,7 @@ impl Default for Settings {
                     process: 0,
                     prompt: 1,
                     next_steps: vec![StreamTextToScreen],
+                    ..Trigger::default()
                 },
             ],
         }
@@ -161,11 +163,19 @@ pub enum Step {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum SelectionAction {
+    Remove,
+    Newline,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Trigger {
     pub trigger_with_shortcut: Option<String>,
     pub process: usize,
     pub prompt: usize,
     pub next_steps: Vec<Step>,
+    pub selection_action: Option<SelectionAction>,
 }
 
 impl Default for Trigger {
@@ -175,6 +185,7 @@ impl Default for Trigger {
             process: 0,
             prompt: 0,
             next_steps: vec![StreamTextToScreen],
+            selection_action: None,
         }
     }
 }
