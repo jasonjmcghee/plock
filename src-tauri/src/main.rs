@@ -102,7 +102,7 @@ fn main() {
                         .lock()
                         .unwrap()
                         .get_text()
-                        .expect("Failed to get clipboard contents.")
+                        .unwrap_or_else(|_| String::new())
                 };
                 let cloned_contents = original_clipboard_contents.clone();
                 {
