@@ -2622,12 +2622,14 @@ dependencies = [
 
 [[package]]
 name = "plock"
-version = "0.1.1"
+version = "0.0.0"
 dependencies = [
  "active-win-pos-rs",
  "arboard",
  "async-stream",
+ "base64 0.21.7",
  "enigo",
+ "image",
  "lazy_static",
  "ollama-rs",
  "rdev",

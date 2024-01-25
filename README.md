@@ -1,23 +1,28 @@
 # Plock
 
-Use an LLM (or anything else that can stream to stdout) directly from literally anywhere you can type. Outputs in real time.
+Use an LLM (or anything else that can stream to stdout) directly from literally anywhere you can type. Outputs in real
+time.
 
 ![demo](https://github.com/jasonjmcghee/plock/assets/1522149/737cb647-69aa-426c-884d-bbe29bac0637)
 
+Write a prompt, select it, and (by default) hit `Cmd+Shift+.`. It will replace your prompt with the output in a
+streaming fashion.
 
-Write a prompt, select it, and (by default) hit `Cmd+Shift+.`. It will replace your prompt with the output in a streaming fashion.
-
-Also! You can first put something on your clipboard (as in copy some text) before writing / selecting your prompt, and it (by default) `Cmd+Shift+/` and it will use the copied text as context to answer your prompt.
+Also! You can first put something on your clipboard (as in copy some text) before writing / selecting your prompt, and
+it (by default) `Cmd+Shift+/` and it will use the copied text as context to answer your prompt.
 
 For Linux, use `Ctrl` instead of `Cmd`.
 
-**100% Local** by default. (If you want to use an API or something, you can call any shell script you want specified in `settings.json` - just set `ollama.enabled` to `false` in `settings.json`)
+**100% Local** by default. (If you want to use an API or something, you can call any shell script you want specified
+in `settings.json`)
 
 I show an example `settings.json` in [Settings](#settings)
 
-_Note: Something not work properly? I won't know! Please log an issue or take a crack at fixing it yourself and submitting a PR! Have feature ideas? Log an issue!_
+_Note: Something not work properly? I won't know! Please log an issue or take a crack at fixing it yourself and
+submitting a PR! Have feature ideas? Log an issue!_
 
 ## Demo using Ollama
+
 <a href="https://www.loom.com/share/fed267e695d145c88e6bff7e631da8e0">
   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/fed267e695d145c88e6bff7e631da8e0-with-play.gif">
 </a>
@@ -25,15 +30,18 @@ _Note: Something not work properly? I won't know! Please log an issue or take a 
 (in the video I mention [rem](https://github.com/jasonjmcghee/rem), another project I'm working on)
 
 ## Demo using GPT-3.5 and GPT-4
+
 <a href="https://www.loom.com/share/756220f3f5e249d5b4d5b759e9f9add3">
   <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/756220f3f5e249d5b4d5b759e9f9add3-with-play.gif">
 </a>
 
-If you are going to use this with remote APIs, consider environment variables for your API keys... make sure they exist wherever you launch, or directly embed them (just don't push that code anywhere)
+If you are going to use this with remote APIs, consider environment variables for your API keys... make sure they exist
+wherever you launch, or directly embed them (just don't push that code anywhere)
 
 ## Getting Started
 
-Install [ollama](https://github.com/jmorganca/ollama) and make sure to run `ollama pull openhermes2.5-mistral` or swap it out in settings for something else.
+Install [ollama](https://github.com/jmorganca/ollama) and make sure to run `ollama pull openhermes2.5-mistral` or swap
+it out in settings for something else.
 
 Launch "plock"
 
@@ -41,7 +49,8 @@ Shortcuts:
 
 `Ctrl / Cmd + Shift + .`: Replace the selected text with the output of the model.
 
-`Ctrl / Cmd + Shift + /`: Feed whatever is on your clipboard as "context" and the replace the selected text with the output of the model.
+`Ctrl / Cmd + Shift + /`: Feed whatever is on your clipboard as "context" and the replace the selected text with the
+output of the model.
 
 (these two are customizable in `settings.json`)
 
@@ -49,7 +58,8 @@ Shortcuts:
 
 **Mac** will request access to keyboard accessibility.
 
-**Linux** (untested), may require X11 libs for clipboard stuff and key simulation using enigo. [Helpful instructions](https://github.com/enigo-rs/enigo/tree/main#runtime-dependencies)
+**Linux** (untested), may require X11 libs for clipboard stuff and key simulation using
+enigo. [Helpful instructions](https://github.com/enigo-rs/enigo/tree/main#runtime-dependencies)
 
 Also [system tray icons require some extras](https://tauri.app/v1/guides/features/system-tray/#linux-setup)
 
@@ -75,48 +85,128 @@ Correct me if any of these are wrong.
 
 ```json
 {
-  "environment": {},
-  "ollama": {
-    "enabled": true,
-    "ollama_model": "openhermes2.5-mistral"
+  "environment": {
+    "PERPLEXITY_API": "",
+    "OLLAMA_MODEL": "openhermes2.5-mistral",
+    "OPENAI_API": ""
   },
-  "custom_commands": {
-    "index": 0,
-    "custom_commands": [
-      {
-        "name": "gpt",
-        "command": [
-          "bash",
-          "/Users/jason/workspace/plock/scripts/gpt.sh"
-        ]
-      }
-    ]
-  },
-  "custom_prompts": {
-    "basic_index": 0,
-    "with_context_index": 1,
-    "custom_prompts": [
-      {
-        "name": "default basic",
-        "prompt": "Say hello, then {}"
-      },
-      {
-        "name": "default with context",
-        "prompt": "I will ask you to do something. Below is some extra context to help do what I ask. --------- {} --------- Given the above context, please, {}. DO NOT OUTPUT ANYTHING ELSE."
-      }
-    ]
-  },
-  "shortcuts": {
-    "basic": "Command+Shift+.",
-    "with_context": "Command+Shift+/"
-  }
+  "processes": [
+    {
+      "command": [
+        "bash",
+        "/Users/jason/workspace/plock/scripts/gpt.sh"
+      ]
+    },
+    {
+      "command": []
+    },
+    {
+      "command": [
+        "bash",
+        "/Users/jason/workspace/plock/scripts/p.sh"
+      ]
+    },
+    {
+      "command": [
+        "bash",
+        "/Users/jason/workspace/plock/scripts/dalle.sh"
+      ]
+    },
+    "ollama"
+  ],
+  "prompts": [
+    {
+      "name": "default basic",
+      "prompt": "$SELECTION"
+    },
+    {
+      "name": "default with context",
+      "prompt": "I will ask you to do something. Below is some extra context to help do what I ask. --------- $CLIPBOARD --------- Given the above context, please, $SELECTION. DO NOT OUTPUT ANYTHING ELSE."
+    },
+    {
+      "name": "step",
+      "prompt": "$STEP"
+    },
+    {
+      "name": "say gpt",
+      "prompt": "say \"$GPT\""
+    }
+  ],
+  "triggers": [
+    {
+      "trigger_with_shortcut": "Command+Shift+,",
+      "process": 1,
+      "prompt": 0,
+      "next_steps": [
+        {
+          "store_as_env_var": "STEP"
+        },
+        {
+          "trigger": 4
+        }
+      ],
+      "selection_action": null
+    },
+    {
+      "trigger_with_shortcut": "Command+Shift+.",
+      "process": 0,
+      "prompt": 0,
+      "next_steps": [
+        "stream_text_to_screen"
+      ],
+      "selection_action": "newline"
+    },
+    {
+      "trigger_with_shortcut": "Command+Shift+/",
+      "process": 1,
+      "prompt": 0,
+      "next_steps": [
+        "write_final_text_to_screen"
+      ],
+      "selection_action": "newline"
+    },
+    {
+      "trigger_with_shortcut": "Command+Shift+'",
+      "process": 3,
+      "prompt": 0,
+      "next_steps": [
+        "write_image_to_screen"
+      ],
+      "selection_action": null
+    },
+    {
+      "trigger_with_shortcut": null,
+      "process": 0,
+      "prompt": 2,
+      "next_steps": [
+        "stream_text_to_screen",
+        {
+          "store_as_env_var": "GPT"
+        },
+        {
+          "trigger": 5
+        }
+      ],
+      "selection_action": null
+    },
+    {
+      "trigger_with_shortcut": null,
+      "process": 0,
+      "prompt": 3,
+      "next_steps": [],
+      "selection_action": null
+    }
+  ]
 }
+
 ```
+
 </details>
 
-
 ## Building Plock
-If you don't have apple silicon or don't want to blindly trust binaries (you shouldn't), here's how you can build it yourself!
+
+If you don't have apple silicon or don't want to blindly trust binaries (you shouldn't), here's how you can build it
+yourself!
 
 ## Prerequisites
 
@@ -138,6 +228,7 @@ source $HOME/.cargo/env
 ```
 
 ### ~~Bun~~ NPM
+
 _Whattt?? Why?_ - well, windows doesn't support `bun` in github actions afaict. So, I'm using npm instead.
 
 [How to Install Node](https://nodejs.org/en/download/package-manager)
@@ -168,6 +259,7 @@ https://github.com/jasonjmcghee/plock/assets/1522149/6166af73-545f-4a8e-ad46-ea8
 
 Curious folks might be wondering what `ocr` feature is. I took a crack at taking a screenshot,
 running OCR, and using that for context, instead of copying text manually. Long story short,
-rusty-tesseract _really_ dissapointed me, which is awkward b/c it's core to [xrem](https://github.com/jasonjmcghee/xrem).
+rusty-tesseract _really_ dissapointed me, which is awkward b/c it's core
+to [xrem](https://github.com/jasonjmcghee/xrem).
 
 If someone wants to figure this out... this could be really cool, especially with multi-modal models.

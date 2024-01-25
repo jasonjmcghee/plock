@@ -1,17 +1,26 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use crate::generator::TextGeneratorType;
-use enigo::{Direction, Enigo, Key, Keyboard, Settings};
+extern crate core;
+
+use crate::generator::generate;
+use crate::settings::{SelectionAction, Step, SETTINGS};
+use arboard::ImageData;
+use base64::decode;
+use enigo::{Direction, Enigo, InputResult, Key, Keyboard};
+use image::{load_from_memory, EncodableLayout};
 use rdev::{listen, EventType, Key as RdevKey};
+use std::borrow::Cow;
 use std::collections::HashSet;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
-use std::{sync::Arc, thread};
-use tauri::{AppHandle, CustomMenuItem, GlobalShortcutManager, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowEvent};
+use std::{env, sync::Arc, thread};
+use tauri::{
+    AppHandle, CustomMenuItem, GlobalShortcutManager, Manager, SystemTray, SystemTrayEvent,
+    SystemTrayMenu, SystemTrayMenuItem, WindowEvent,
+};
 use tokio::runtime::Runtime;
 use tokio_stream::StreamExt;
-use crate::settings::SETTINGS;
 
 #[cfg(feature = "ocr")]
 mod ocr;
@@ -22,8 +31,11 @@ mod settings;
 fn make_tray() -> SystemTray {
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let load_settings = CustomMenuItem::new("load_settings".to_string(), "Load Settings");
+    let settings_location =
+        CustomMenuItem::new("settings_location".to_string(), "<Settings Location>").disabled();
     let tray_menu = SystemTrayMenu::new()
         .add_item(load_settings)
+        .add_item(settings_location)
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(quit);
     SystemTray::new().with_menu(tray_menu)
@@ -32,16 +44,15 @@ fn make_tray() -> SystemTray {
 fn main() {
     let exit_flag = Arc::new(AtomicBool::new(false));
     let trigger_flag = Arc::new(AtomicBool::new(false));
-    let use_clipboard_flag = Arc::new(AtomicBool::new(false));
+    let trigger_index = Arc::new(AtomicUsize::new(0));
 
     let trigger_flag_clone = trigger_flag.clone();
-    let use_clipboard_flag_listen_clone = use_clipboard_flag.clone();
-    let use_clipboard_flag_clone = use_clipboard_flag.clone();
 
     let old_clipboard = Arc::new(Mutex::new(String::new()));
 
     let trigger_flag_listen_clone = trigger_flag.clone();
     let exit_flag_listen_clone = exit_flag.clone();
+    let trigger_index_clone = trigger_index.clone();
 
     let rt = Arc::new(Runtime::new().unwrap());
     let rt_clone = Arc::clone(&rt);
@@ -83,10 +94,6 @@ fn main() {
 
             if trigger_flag_listen_clone.load(Ordering::SeqCst) {
                 println!("tried to trigger");
-                let should_use_clipboard_as_context =
-                    use_clipboard_flag_listen_clone.load(Ordering::SeqCst);
-                // Reset clipboard
-                use_clipboard_flag_listen_clone.store(false, Ordering::SeqCst);
                 // If no keys are pressed, trigger the action
                 trigger_flag_listen_clone.store(false, Ordering::SeqCst);
                 // Reset exit flag
@@ -102,7 +109,7 @@ fn main() {
                         .lock()
                         .unwrap()
                         .get_text()
-                        .unwrap_or_else(|_| String::new())
+                        .unwrap_or("".to_string())
                 };
                 let cloned_contents = original_clipboard_contents.clone();
                 {
@@ -114,7 +121,7 @@ fn main() {
                     rt_clone.clone(),
                     exit_flag_listen_clone.clone(),
                     pressed_keys_clone.clone(),
-                    should_use_clipboard_as_context,
+                    trigger_index_clone.clone(),
                 );
             }
         })
@@ -123,8 +130,12 @@ fn main() {
 
     tauri::Builder::default()
         .setup(move |app| {
-            let _ = settings::ensure_local_data_dir(app.app_handle())
+            let path = settings::ensure_local_data_dir(app.app_handle())
                 .expect("Failed to create local data dir");
+            app.tray_handle()
+                .get_item("settings_location")
+                .set_title(path)
+                .unwrap();
             let _ = settings::load_settings(app.app_handle());
 
             #[cfg(target_os = "macos")]
@@ -137,23 +148,24 @@ fn main() {
                 app_handle.lock().unwrap().replace(app.handle().clone());
             }
 
-            let trigger_flag_second_clone = trigger_flag_clone.clone();
-            let basic_shortcut = { SETTINGS.lock().unwrap().shortcuts.basic.clone() };
-            let with_context_shortcut = { SETTINGS.lock().unwrap().shortcuts.with_context.clone() };
+            let triggers_clone = {
+                let settings = SETTINGS.lock().unwrap();
+                settings.triggers.clone()
+            };
 
-            app.global_shortcut_manager()
-                .register(&basic_shortcut, move || {
-                    trigger_flag_second_clone.store(true, Ordering::SeqCst);
-                })
-                .expect("Failed to register global shortcut");
+            for (i, trigger) in triggers_clone.iter().enumerate() {
+                if let Some(shortcut) = trigger.trigger_with_shortcut.clone() {
+                    let trigger_index_clone = trigger_index.clone();
+                    let trigger_flag_second_clone = trigger_flag_clone.clone();
 
-            app.global_shortcut_manager()
-                .register(&with_context_shortcut, move || {
-                    use_clipboard_flag_clone.store(true, Ordering::SeqCst);
-                    trigger_flag_clone.store(true, Ordering::SeqCst);
-                })
-                .expect("Failed to register global shortcut");
-
+                    app.global_shortcut_manager()
+                        .register(&shortcut, move || {
+                            trigger_index_clone.store(i, Ordering::SeqCst);
+                            trigger_flag_second_clone.store(true, Ordering::SeqCst);
+                        })
+                        .expect("Failed to register global shortcut");
+                }
+            }
             Ok(())
         })
         .system_tray(make_tray())
@@ -163,9 +175,8 @@ fn main() {
                     match id.as_str() {
                         "quit" => std::process::exit(0),
                         "load_settings" => {
-                            settings::load_settings(
-                                app.app_handle().clone()
-                            ).expect("Failed to load settings.");
+                            settings::load_settings(app.app_handle().clone())
+                                .expect("Failed to load settings.");
                         }
                         _ => {}
                     }
@@ -182,16 +193,16 @@ fn main() {
         .expect("error while running tauri application");
 }
 
-fn copy_and_remove_selected_text() {
-    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+fn handle_selection(selection_action: SelectionAction) {
+    let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
     #[cfg(target_os = "macos")]
     {
         enigo.key(Key::Meta, Direction::Release).unwrap();
         // copy
         enigo.key(Key::Meta, Direction::Press).unwrap();
-        enigo.key(Key::Unicode('c'), Direction::Click).unwrap();
+        // enigo.key(Key::Unicode('c'), Direction::Click).unwrap();
+        enigo.raw(8, Direction::Click).unwrap();
         enigo.key(Key::Meta, Direction::Release).unwrap();
-        enigo.key(Key::Backspace, Direction::Click).unwrap();
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -200,17 +211,30 @@ fn copy_and_remove_selected_text() {
         enigo.key(Key::LControl, Direction::Press).unwrap();
         enigo.key(Key::Unicode('c'), Direction::Click).unwrap();
         enigo.key(Key::LControl, Direction::Release).unwrap();
-        enigo.key(Key::Backspace, Direction::Click).unwrap();
+    }
+
+    match selection_action {
+        SelectionAction::Remove => {
+            enigo.key(Key::Backspace, Direction::Click).unwrap();
+        }
+        SelectionAction::Newline => {
+            // Why are we deleting and rewriting? something strange with enigo or something is getting locked up
+            enigo.key(Key::Backspace, Direction::Click).unwrap();
+            // enigo.key(Key::RightArrow, Direction::Click).unwrap();
+            // enigo.text("\n\n").unwrap();
+        }
     }
 }
 
-fn get_context(
-    app_handle: Arc<Mutex<Option<AppHandle>>>,
-    original_clipboard_contents: String,
-    should_use_clipboard_as_context: bool,
-) -> String {
+fn get_context(app_handle: Arc<Mutex<Option<AppHandle>>>, pipeline_index: Arc<AtomicUsize>) {
     println!("preparing to copy text...");
-    copy_and_remove_selected_text();
+    let selection_action = {
+        let settings = SETTINGS.lock().unwrap();
+        let i = pipeline_index.load(Ordering::SeqCst);
+        let trigger = settings.triggers[i].clone();
+        trigger.selection_action.unwrap_or(SelectionAction::Remove)
+    };
+    handle_selection(selection_action);
 
     let user_prompt = {
         let mut handle = app_handle.lock().unwrap();
@@ -222,58 +246,34 @@ fn get_context(
             .lock()
             .unwrap()
             .get_text()
-            .expect("Failed to restore clipboard.")
+            .expect("Failed to get clipboard.")
     };
 
-    if !should_use_clipboard_as_context {
-        let basic_prompt = {
-            let settings = SETTINGS.lock().unwrap();
-            let index = settings.custom_prompts.basic_index;
-            settings.custom_prompts.custom_prompts[index].prompt.clone()
-        };
-        return basic_prompt.replace("{}", &user_prompt);
+    {
+        SETTINGS
+            .lock()
+            .unwrap()
+            .add_env_var("SELECTION".to_string(), user_prompt.clone());
     }
 
     println!("copied... {}", user_prompt);
 
-    let with_context_prompt = {
-        let settings = SETTINGS.lock().unwrap();
-        let index = settings.custom_prompts.with_context_index;
-        settings.custom_prompts.custom_prompts[index].prompt.clone()
-    };
-
-    let context = {
-        #[cfg(not(feature = "ocr"))]
+    #[cfg(feature = "ocr")]
+    {
+        use crate::ocr::get_text_on_screen;
+        let text_on_screen = match get_text_on_screen() {
+            Ok(contents) => contents,
+            Err(e) => {
+                panic!("Failed to get text on screen: {}", e);
+            }
+        };
         {
-            original_clipboard_contents
+            SETTINGS
+                .lock()
+                .unwrap()
+                .add_env_var("OCR".to_string(), text_on_screen.clone());
         }
-
-        #[cfg(feature = "ocr")]
-        {
-            use crate::ocr::get_text_on_screen;
-            let text_on_screen = match get_text_on_screen() {
-                Ok(contents) => contents,
-                Err(e) => {
-                    panic!("Failed to get text on screen: {}", e);
-                }
-            };
-            format!("{}\n\n{}", original_clipboard_contents, text_on_screen)
-        }
-    };
-
-    let mut pieces = with_context_prompt.split("{}");
-    let mut final_prompt = "".to_string();
-    // Before {}
-    final_prompt.push_str(pieces.next().unwrap());
-    // Replace first {} with context
-    final_prompt.push_str(&context);
-    // After first {}, before second {}
-    final_prompt.push_str(pieces.next().unwrap());
-    // Replace second {} with user_prompt
-    final_prompt.push_str(&user_prompt);
-    // After second {}
-    final_prompt.push_str(pieces.next().unwrap());
-    final_prompt
+    }
 }
 
 fn trigger_action(
@@ -282,69 +282,205 @@ fn trigger_action(
     rt: Arc<Runtime>,
     exit_flag: Arc<AtomicBool>,
     pressed_keys: Arc<Mutex<HashSet<RdevKey>>>,
-    should_use_clipboard_as_context: bool,
+    pipeline_index: Arc<AtomicUsize>,
 ) {
     let exit_flag_thread = exit_flag.clone();
-    let original_clipboard_contents_clone = original_clipboard_contents.clone();
+    {
+        SETTINGS
+            .lock()
+            .unwrap()
+            .add_env_var("CLIPBOARD".to_string(), original_clipboard_contents.clone());
+    }
 
-    let context = get_context(
-        app_handle.clone(),
-        original_clipboard_contents,
-        should_use_clipboard_as_context,
-    );
-    println!("Context: {}", context);
+    get_context(app_handle.clone(), pipeline_index.clone());
+    println!("CLIPBOARD: {:?}", env::var_os("CLIPBOARD"));
+    println!("SELECTION: {:?}", env::var_os("SELECTION"));
 
-    let use_ollama = { SETTINGS.lock().unwrap().ollama.enabled };
-    let generator = if use_ollama {
-        TextGeneratorType::OllamaGenerator
-    } else {
-        TextGeneratorType::ShellScriptGenerator
-    };
+    let app_handle_clone = app_handle.clone();
 
     rt.spawn_blocking(move || {
         tokio::runtime::Handle::current().block_on(async {
-            let mut enigo = Enigo::new(&Settings::default()).unwrap();
-            let mut response_stream = generator.generate(context).await;
+            let index = pipeline_index.clone();
+            let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
 
-            let mut buffer = Vec::new();
-            let mut did_exit = false;
-            while let Some(response) = response_stream.next().await {
-                buffer.push(response);
+            loop {
+                // Create a pipe here so that we can shove output to other processes
+                let i = index.load(Ordering::SeqCst);
 
-                if buffer.len() > 4 {
-                    let output = buffer.join("");
-                    buffer.clear();
-                    enigo.fast_text(&output).expect("Failed to type out text");
+                let (trigger, process_type, prompt) = {
+                    let settings = SETTINGS.lock().unwrap();
+                    let trigger = settings.triggers[i].clone();
+                    (
+                        trigger.clone(),
+                        settings.processes[trigger.process].clone(),
+                        settings.prompts[trigger.prompt].clone(),
+                    )
+                };
+
+                let mut response_stream = generate(prompt.prompt, process_type).await;
+
+                let mut whole_buffer = Vec::new();
+                let mut delta_buffer = Vec::new();
+
+                let mut did_exit = false;
+
+                {
+                    while let Some(response) = response_stream.next().await {
+                        whole_buffer.push(response.clone());
+                        delta_buffer.push(response);
+
+                        let delta_output = {
+                            if delta_buffer.len() > 4 {
+                                let s = delta_buffer.clone().join("");
+                                delta_buffer.clear();
+                                s
+                            } else {
+                                "".to_string()
+                            }
+                        };
+
+                        for step in trigger.next_steps.clone() {
+                            if let Step::StreamTextToScreen = step {
+                                enigo.text(&delta_output).expect("Failed to type out text");
+                            }
+                        }
+
+                        // Exit loop if child process has finished or exit flag is set
+                        if exit_flag_thread.load(Ordering::SeqCst) {
+                            did_exit = true;
+                            break;
+                        }
+                    }
                 }
 
-                // Exit loop if child process has finished or exit flag is set
-                if exit_flag_thread.load(Ordering::SeqCst) {
-                    did_exit = true;
+                let mut should_continue = false;
+                if !did_exit {
+                    let delta_output = delta_buffer.join("");
+                    let whole_output = whole_buffer.join("");
+                    println!("Whole output: {}", whole_output);
+
+                    for step in trigger.next_steps {
+                        match step {
+                            Step::StreamTextToScreen => {
+                                if !delta_buffer.is_empty() {
+                                    enigo.text(&delta_output).expect("Failed to type out text");
+                                }
+                            }
+                            Step::StoreAsEnvVar(key) => {
+                                SETTINGS
+                                    .lock()
+                                    .unwrap()
+                                    .add_env_var(key, whole_output.clone());
+                            }
+                            Step::Trigger(i) => {
+                                index.store(i, Ordering::SeqCst);
+                                should_continue = true;
+                            }
+                            Step::WriteFinalTextToScreen => {
+                                let mut final_buffer = whole_buffer.clone();
+                                // Why are we deleting and rewriting? something strange with enigo or something is getting locked up
+                                if let SelectionAction::Newline = trigger
+                                    .selection_action
+                                    .clone()
+                                    .unwrap_or(SelectionAction::Remove)
+                                {
+                                    let to_insert = format!(
+                                        "{}\n\n",
+                                        env::var_os("SELECTION").unwrap().to_string_lossy()
+                                    );
+                                    final_buffer.insert(0, to_insert.clone());
+                                }
+                                let final_buffer_output = final_buffer.join("");
+
+                                {
+                                    let mut handle = app_handle_clone.lock().unwrap();
+                                    handle
+                                        .as_mut()
+                                        .unwrap()
+                                        .clipboard_manager()
+                                        .clipboard
+                                        .lock()
+                                        .unwrap()
+                                        .set_text(&final_buffer_output)
+                                        .expect("Failed to copy image to clipboard");
+                                };
+
+                                paste(&mut enigo);
+                            }
+                            Step::WriteImageToScreen => {
+                                let image_data = decode(&whole_output.trim())
+                                    .expect("Failed to decode base64 string");
+
+                                // Convert binary data to an image format (PNG)
+                                let img = load_from_memory(&image_data)
+                                    .expect("Failed to load image from memory");
+                                // let mut cursor = Cursor::new(Vec::new());
+                                let rgba = img.into_rgba8();
+                                let image = ImageData {
+                                    bytes: Cow::from(rgba.as_bytes()),
+                                    width: rgba.width() as usize,
+                                    height: rgba.height() as usize,
+                                };
+
+                                // Copy the image to the clipboard
+                                {
+                                    let mut handle = app_handle_clone.lock().unwrap();
+                                    handle
+                                        .as_mut()
+                                        .unwrap()
+                                        .clipboard_manager()
+                                        .clipboard
+                                        .lock()
+                                        .unwrap()
+                                        .set_image(image)
+                                        .expect("Failed to copy image to clipboard");
+                                };
+                                paste(&mut enigo);
+                            }
+                        }
+                    }
+                }
+
+                if !should_continue {
                     break;
                 }
-            }
-
-            if !did_exit && !buffer.is_empty() {
-                let output = buffer.join("");
-                enigo.fast_text(&output).expect("Failed to type out text");
             }
 
             exit_flag_thread.store(false, Ordering::SeqCst);
 
             {
                 let mut handle = app_handle.lock().unwrap();
-                handle
-                    .as_mut()
-                    .unwrap()
-                    .clipboard_manager()
-                    .clipboard
-                    .lock()
-                    .unwrap()
-                    .set_text(original_clipboard_contents_clone)
-                    .expect("Failed to restore clipboard.");
+                if let Some(old_clipboard) = env::var_os("CLIPBOARD") {
+                    handle
+                        .as_mut()
+                        .unwrap()
+                        .clipboard_manager()
+                        .clipboard
+                        .lock()
+                        .unwrap()
+                        .set_text(old_clipboard.to_string_lossy().to_string())
+                        .expect("Failed to restore clipboard.");
+                }
             }
 
             pressed_keys.lock().unwrap().clear();
         });
     });
+}
+
+fn paste(enigo: &mut Enigo) {
+    enigo
+        .key(Key::Meta, Direction::Release)
+        .expect("Failed to paste text");
+    enigo
+        .key(Key::Meta, Direction::Press)
+        .expect("Failed to paste text");
+    // This keeps causing a bad access in `unsafe`: enigo-0.2.0-rc2/src/macos/macos_impl.rs:631
+    // enigo.key(Key::Unicode('v'), Direction::Click).expect("Failed to paste text");
+    enigo
+        .raw(9, Direction::Click)
+        .expect("Failed to paste text");
+    enigo
+        .key(Key::Meta, Direction::Release)
+        .expect("Failed to paste text");
 }

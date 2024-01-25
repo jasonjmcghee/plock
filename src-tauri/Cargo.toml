@@ -13,8 +13,8 @@ edition = "2021"
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
-tauri = { version = "1.5", features = [ "fs-all", "clipboard-all", "global-shortcut-all",
-  "shell-open", "system-tray"
+tauri = { version = "1.5", features = ["fs-all", "clipboard-all", "global-shortcut-all",
+    "shell-open", "system-tray"
 ] }
 
 serde = { version = "1.0", features = ["derive"] }
@@ -27,6 +27,8 @@ rdev = { git = "https://github.com/fufesou/rdev" }
 enigo = "0.2.0-rc2"
 arboard = "3.3.0"
 lazy_static = "1.4.0"
+base64 = "0.21.7"
+image = "0.24.8"
 
 # OCR feature dependencies
 screenshots = { version = "0.8.6", optional = true }

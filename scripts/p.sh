@@ -3,7 +3,7 @@
 jq -n \
 		--arg content "$*" \
 		'{
-      "model": "pplx-7b-online",
+      "model": "pplx-70b-chat",
       "messages": [
         {
           "role": "system",
