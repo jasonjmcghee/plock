@@ -21,13 +21,11 @@ I show an example `settings.json` in [Settings](#settings)
 _Note: Something not work properly? I won't know! Please log an issue or take a crack at fixing it yourself and
 submitting a PR! Have feature ideas? Log an issue!_
 
-## Demo using Ollama
+## Demo showing concept of Triggers, and the new flexible system
 
-<a href="https://www.loom.com/share/fed267e695d145c88e6bff7e631da8e0">
-  <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/fed267e695d145c88e6bff7e631da8e0-with-play.gif">
+<a href="https://www.loom.com/share/d3adddc37c2e4c8daeef11255c0135ea">
+  <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/d3adddc37c2e4c8daeef11255c0135ea-with-play.gif">
 </a>
-
-(in the video I mention [rem](https://github.com/jasonjmcghee/rem), another project I'm working on)
 
 ## Demo using GPT-3.5 and GPT-4
 
@@ -37,6 +35,14 @@ submitting a PR! Have feature ideas? Log an issue!_
 
 If you are going to use this with remote APIs, consider environment variables for your API keys... make sure they exist
 wherever you launch, or directly embed them (just don't push that code anywhere)
+
+## (Original) Demo using Ollama
+
+<a href="https://www.loom.com/share/fed267e695d145c88e6bff7e631da8e0">
+  <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/fed267e695d145c88e6bff7e631da8e0-with-play.gif">
+</a>
+
+(in the video I mention [rem](https://github.com/jasonjmcghee/rem), another project I'm working on)
 
 ## Getting Started
 
