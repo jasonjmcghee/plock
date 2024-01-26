@@ -78,11 +78,15 @@ prompts, whether to use shell scripts and what they are, and other settings.
 
 After updating, click the tray icon and select "Load Settings" or restart it.
 
+At any time you can click the tray icon and it will list the settings location. For what it's worth:
+
 On mac, It's at `~/Library/Application Support/today.jason.plock/settings.json`.
 
 On linux, I think it's `~/$XDG_DATA_HOME/today.jason.plock/settings.json`.
 
 Windows, I think it's `~\AppData\Local\today.jason.plock\settings.json`
+
+But clicking the icon is the best way.
 
 Correct me if any of these are wrong.
 
