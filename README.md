@@ -90,6 +90,20 @@ But clicking the icon is the best way.
 
 Correct me if any of these are wrong.
 
+### Using Settings
+
+Take a look at the shortcut keys. A “trigger” can be started with a shortcut. That points to a process (by an 0-index) and a prompt (by a 0-index) to the lists defined in the processes and prompts fields.
+
+a process is either “ollama” or a command (shell on mac). You can use that to call your script.
+
+prompts can use one of the two built in variables $CLIPBOARD and $SELECTION, or any others you define using set_env_var trigger.
+
+next_steps defines what happens to the output, which can be written to the screen (streaming or all at once ), saved to a variable, and/or kick off another trigger.
+
+In the future i want to make it easy to trigger flexibly (cron, push), output wherever / however, easily chain things together.
+
+very very open to feedback
+
 <details>
   <summary>Show Example</summary>
 
