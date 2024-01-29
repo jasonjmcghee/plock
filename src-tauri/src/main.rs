@@ -223,6 +223,8 @@ fn handle_selection(selection_action: SelectionAction) {
             // enigo.key(Key::RightArrow, Direction::Click).unwrap();
             // enigo.text("\n\n").unwrap();
         }
+        SelectionAction::Nothing => {
+        }
     }
 }
 

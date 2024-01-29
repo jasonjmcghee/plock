@@ -167,6 +167,7 @@ pub enum Step {
 pub enum SelectionAction {
     Remove,
     Newline,
+    Nothing,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
