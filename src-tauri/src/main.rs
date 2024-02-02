@@ -335,12 +335,7 @@ fn trigger_action(
 
                         for step in trigger.next_steps.clone() {
                             if let Step::StreamTextToScreen = step {
-                                // Split the output on new lines and send each part followed by an 'Enter' keypress.
-                                for step in trigger.next_steps.clone() {
-                                    if let Step::StreamTextToScreen = step {
-                                        enigo.text(&delta_output).expect("Failed to type out text");
-                                    }
-                                }
+                                enigo.text(&delta_output).expect("Failed to type out text");
                             }
                         }
 
