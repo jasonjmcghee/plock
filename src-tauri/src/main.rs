@@ -325,35 +325,33 @@ fn trigger_action(
                 let mut did_exit = false;
 
                 {
-                    {
-                        while let Some(response) = response_stream.next().await {
-                            let delta_output = {
-                                if delta_buffer.len() > 4 && !response.starts_with('\n')
-                                // workaround for a bug in enigo, it doesn't like leading newlines
-                                {
-                                    let s = delta_buffer.clone().join("");
-                                    delta_buffer.clear();
-                                    s
-                                } else {
-                                    "".to_string()
-                                }
-                            };
-
-                            // move this to after the delta_output so we can not start a delta_buffer with a newline
-                            whole_buffer.push(response.clone());
-                            delta_buffer.push(response);
-
-                            for step in trigger.next_steps.clone() {
-                                if let Step::StreamTextToScreen = step {
-                                    enigo.text(&delta_output).expect("Failed to type out text");
-                                }
+                    while let Some(response) = response_stream.next().await {
+                        let delta_output = {
+                            if delta_buffer.len() > 4 && !response.starts_with('\n')
+                            // workaround for a bug in enigo, it doesn't like leading newlines
+                            {
+                                let s = delta_buffer.clone().join("");
+                                delta_buffer.clear();
+                                s
+                            } else {
+                                "".to_string()
                             }
+                        };
 
-                            // Exit loop if child process has finished or exit flag is set
-                            if exit_flag_thread.load(Ordering::SeqCst) {
-                                did_exit = true;
-                                break;
+                        // move this to after the delta_output so we can not start a delta_buffer with a newline
+                        whole_buffer.push(response.clone());
+                        delta_buffer.push(response);
+
+                        for step in trigger.next_steps.clone() {
+                            if let Step::StreamTextToScreen = step {
+                                enigo.text(&delta_output).expect("Failed to type out text");
                             }
+                        }
+
+                        // Exit loop if child process has finished or exit flag is set
+                        if exit_flag_thread.load(Ordering::SeqCst) {
+                            did_exit = true;
+                            break;
                         }
                     }
                 }
