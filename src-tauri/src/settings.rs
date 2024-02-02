@@ -2,9 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::{env, fs, path::Path};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
-use tauri::{command, AppHandle};
+use tauri::{command, AppHandle, GlobalShortcutManager};
 use crate::settings::Step::StreamTextToScreen;
 
 lazy_static! {
@@ -97,7 +98,9 @@ pub fn save_settings(app_handle: AppHandle, settings: &Settings) -> Result<(), S
 }
 
 #[command]
-pub fn load_settings(app_handle: AppHandle) -> Result<(), String> {
+pub fn load_settings(
+    app_handle: AppHandle, trigger_index: Arc<AtomicUsize>, trigger_flag: Arc<AtomicBool>
+) -> Result<(), String> {
     let path = get_settings_path(app_handle.clone())?;
     let settings = if path.exists() {
         let data = fs::read_to_string(path).map_err(|e| e.to_string())?;
@@ -108,9 +111,36 @@ pub fn load_settings(app_handle: AppHandle) -> Result<(), String> {
     for (key, value) in settings.environment.iter() {
         { SETTINGS.lock().unwrap().add_env_var(key.clone(), value.clone()); }
     }
+
+    let app_handle_clone = app_handle.clone();
     // Ensures any newly introduced fields are stored in the settings file
     save_settings(app_handle, &settings)?;
     *SETTINGS.lock().unwrap() = settings;
+
+    let triggers_clone = {
+        let settings = SETTINGS.lock().unwrap();
+        settings.triggers.clone()
+    };
+
+    app_handle_clone.global_shortcut_manager()
+        .unregister_all()
+        .expect("Failed to register global shortcut");
+
+    for (i, trigger) in triggers_clone.iter().enumerate() {
+        if let Some(shortcut) = trigger.trigger_with_shortcut.clone() {
+
+            let trigger_index_clone = trigger_index.clone();
+            let trigger_flag_second_clone = trigger_flag.clone();
+
+            app_handle_clone.global_shortcut_manager()
+                .register(&shortcut, move || {
+                    trigger_index_clone.store(i, Ordering::SeqCst);
+                    trigger_flag_second_clone.store(true, Ordering::SeqCst);
+                })
+                .expect("Failed to register global shortcut");
+        }
+    }
+
     Ok(())
 }
 
@@ -167,6 +197,7 @@ pub enum Step {
 pub enum SelectionAction {
     Remove,
     Newline,
+    Nothing,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
