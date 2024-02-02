@@ -46,13 +46,18 @@ fn main() {
     let trigger_flag = Arc::new(AtomicBool::new(false));
     let trigger_index = Arc::new(AtomicUsize::new(0));
 
-    let trigger_flag_clone = trigger_flag.clone();
-
     let old_clipboard = Arc::new(Mutex::new(String::new()));
 
-    let trigger_flag_listen_clone = trigger_flag.clone();
-    let exit_flag_listen_clone = exit_flag.clone();
+    let trigger_flag_clone = trigger_flag.clone();
     let trigger_index_clone = trigger_index.clone();
+
+    let trigger_flag_system_tray_clone = trigger_flag.clone();
+    let trigger_index_system_tray_clone = trigger_index.clone();
+
+    let trigger_flag_listen_clone = trigger_flag.clone();
+    let trigger_index_listen_clone = trigger_index.clone();
+
+    let exit_flag_listen_clone = exit_flag.clone();
 
     let rt = Arc::new(Runtime::new().unwrap());
     let rt_clone = Arc::clone(&rt);
@@ -121,7 +126,7 @@ fn main() {
                     rt_clone.clone(),
                     exit_flag_listen_clone.clone(),
                     pressed_keys_clone.clone(),
-                    trigger_index_clone.clone(),
+                    trigger_index_listen_clone.clone(),
                 );
             }
         })
@@ -136,7 +141,15 @@ fn main() {
                 .get_item("settings_location")
                 .set_title(path)
                 .unwrap();
-            let _ = settings::load_settings(app.app_handle());
+
+            let trigger_index_clone = trigger_index_clone.clone();
+            let trigger_flag_second_clone = trigger_flag_clone.clone();
+
+            let _ = settings::load_settings(
+                app.app_handle(),
+                trigger_index_clone.clone(),
+                trigger_flag_second_clone.clone()
+            );
 
             #[cfg(target_os = "macos")]
             {
@@ -147,25 +160,6 @@ fn main() {
             {
                 app_handle.lock().unwrap().replace(app.handle().clone());
             }
-
-            let triggers_clone = {
-                let settings = SETTINGS.lock().unwrap();
-                settings.triggers.clone()
-            };
-
-            for (i, trigger) in triggers_clone.iter().enumerate() {
-                if let Some(shortcut) = trigger.trigger_with_shortcut.clone() {
-                    let trigger_index_clone = trigger_index.clone();
-                    let trigger_flag_second_clone = trigger_flag_clone.clone();
-
-                    app.global_shortcut_manager()
-                        .register(&shortcut, move || {
-                            trigger_index_clone.store(i, Ordering::SeqCst);
-                            trigger_flag_second_clone.store(true, Ordering::SeqCst);
-                        })
-                        .expect("Failed to register global shortcut");
-                }
-            }
             Ok(())
         })
         .system_tray(make_tray())
@@ -175,9 +169,16 @@ fn main() {
                     match id.as_str() {
                         "quit" => std::process::exit(0),
                         "load_settings" => {
-                            settings::load_settings(app.app_handle().clone())
-                                .expect("Failed to load settings.");
-                        }
+                            let trigger_index_clone = trigger_index_system_tray_clone.clone();
+                            let trigger_flag_second_clone = trigger_flag_system_tray_clone.clone();
+
+                            settings::load_settings(
+                                app.app_handle().clone(),
+                                trigger_index_clone.clone(),
+                                trigger_flag_second_clone.clone()
+                            )
+                                .expect("Failed to load settings.")
+                        },
                         _ => {}
                     }
                 }
@@ -328,6 +329,7 @@ fn trigger_action(
 
                 {
                     while let Some(response) = response_stream.next().await {
+
                         whole_buffer.push(response.clone());
                         delta_buffer.push(response);
 
