@@ -328,33 +328,33 @@ fn trigger_action(
                     while let Some(response) = response_stream.next().await {
                         whole_buffer.push(response.clone());
                         delta_buffer.push(response);
-                    
+
                         // No need to clone delta_buffer as we're going to clear it anyway.
                         let delta_output = delta_buffer.join("");
                         delta_buffer.clear();
-                    
+
                         for step in trigger.next_steps.clone() {
                             if let Step::StreamTextToScreen = step {
                                 // Split the output on new lines and send each part followed by an 'Enter' keypress.
                                 for (index, line) in delta_output.split('\n').enumerate() {
                                     if index != 0 {
                                         // Simulate pressing the 'Enter' key.
-                                        enigo.key(Key::Return, Direction::Click);  
+                                        enigo.key(Key::Return, Direction::Click);
                                     }
 
                                     enigo.text(line);
                                 }
                             }
                         }
-                    
+
                         // Exit loop if child process has finished or exit flag is set
                         if exit_flag_thread.load(Ordering::SeqCst) {
                             did_exit = true;
                             break;
                         }
-                    }   
+                    }
                 }
-                
+
                 let mut should_continue = false;
                 if !did_exit {
                     let delta_output = delta_buffer.join("");
