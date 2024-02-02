@@ -329,16 +329,10 @@ fn trigger_action(
                         whole_buffer.push(response.clone());
                         delta_buffer.push(response);
 
-                        let delta_output = {
-                            if delta_buffer.len() > 4 {
-                                let s = delta_buffer.clone().join("");
-                                delta_buffer.clear();
-                                s
-                            } else {
-                                "".to_string()
-                            }
-                        };
-
+                        // Changed part: This now simply adds response to the delta_output without the length check.
+                        let delta_output = delta_buffer.clone().join("");
+                        delta_buffer.clear();
+                        
                         for step in trigger.next_steps.clone() {
                             if let Step::StreamTextToScreen = step {
                                 enigo.text(&delta_output).expect("Failed to type out text");
