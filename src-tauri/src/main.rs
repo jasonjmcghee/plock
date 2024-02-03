@@ -330,11 +330,10 @@ fn trigger_action(
                 {
                     while let Some(response) = response_stream.next().await {
 
-                        whole_buffer.push(response.clone());
-                        delta_buffer.push(response);
-
                         let delta_output = {
-                            if delta_buffer.len() > 4 {
+                            if delta_buffer.len() > 4 && !response.starts_with('\n')
+                            // workaround for a bug in enigo, it doesn't like leading newlines
+                            {
                                 let s = delta_buffer.clone().join("");
                                 delta_buffer.clear();
                                 s
@@ -342,6 +341,10 @@ fn trigger_action(
                                 "".to_string()
                             }
                         };
+
+                        // move this to after the delta_output so we can not start a delta_buffer with a newline
+                        whole_buffer.push(response.clone());
+                        delta_buffer.push(response);
 
                         for step in trigger.next_steps.clone() {
                             if let Step::StreamTextToScreen = step {
