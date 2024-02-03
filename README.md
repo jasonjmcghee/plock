@@ -236,7 +236,7 @@ yourself!
 
 - Node.js (v14 or later)
 - Rust (v1.41 or later)
-- Bun (latest version)
+- NPM (latest version)
 
 ## Installation Steps
 
