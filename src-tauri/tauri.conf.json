@@ -1,7 +1,7 @@
 {
   "build": {
-    "beforeBuildCommand": "mkdir -p dist && npm run build",
-    "beforeDevCommand": "mkdir -p dist && npm run dev",
+    "beforeBuildCommand": "mkdir -p dist ; npm run build",
+    "beforeDevCommand": "mkdir -p dist ; npm run dev",
     "devPath": "../dist",
     "distDir": "../dist"
   },

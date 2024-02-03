@@ -328,12 +328,12 @@ fn trigger_action(
                 let mut did_exit = false;
 
                 {
-                    while let Some(response) = response_stream.next().await {
+                    'outer:while let Some(response) = response_stream.next().await {
+                        whole_buffer.push(response.clone());
+                        delta_buffer.push(response.clone());
 
                         let delta_output = {
-                            if delta_buffer.len() > 4 && !response.starts_with('\n')
-                            // workaround for a bug in enigo, it doesn't like leading newlines
-                            {
+                            if delta_buffer.len() > 4 {
                                 let s = delta_buffer.clone().join("");
                                 delta_buffer.clear();
                                 s
@@ -342,20 +342,23 @@ fn trigger_action(
                             }
                         };
 
-                        // move this to after the delta_output so we can not start a delta_buffer with a newline
-                        whole_buffer.push(response.clone());
-                        delta_buffer.push(response);
-
                         for step in trigger.next_steps.clone() {
-                            if let Step::StreamTextToScreen = step {
-                                enigo.text(&delta_output).expect("Failed to type out text");
+                            if delta_output.is_empty() {
+                               continue;
                             }
-                        }
-
-                        // Exit loop if child process has finished or exit flag is set
-                        if exit_flag_thread.load(Ordering::SeqCst) {
-                            did_exit = true;
-                            break;
+                            match step {
+                                Step::StreamTextToScreen => {
+                                    for chunk in delta_output.chars().collect::<Vec<char>>().chunks(19) {
+                                        enigo.text(&String::from_iter(chunk).replace("\n", " \n")).expect("Failed to type out text");
+                                        // Exit loop if child process has finished or exit flag is set
+                                        if exit_flag_thread.load(Ordering::SeqCst) {
+                                            did_exit = true;
+                                            break 'outer;
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
                         }
                     }
                 }
@@ -366,11 +369,18 @@ fn trigger_action(
                     let whole_output = whole_buffer.join("");
                     println!("Whole output: {}", whole_output);
 
-                    for step in trigger.next_steps {
+                    'outer: for step in trigger.next_steps {
                         match step {
                             Step::StreamTextToScreen => {
                                 if !delta_buffer.is_empty() {
-                                    enigo.text(&delta_output).expect("Failed to type out text");
+                                    for chunk in delta_output.chars().collect::<Vec<char>>().chunks(19) {
+                                        enigo.text(&String::from_iter(chunk).replace("\n", " \n")).expect("Failed to type out text");
+                                        // Exit loop if child process has finished or exit flag is set
+                                        if exit_flag_thread.load(Ordering::SeqCst) {
+                                            should_continue = false;
+                                            break 'outer;
+                                        }
+                                    }
                                 }
                             }
                             Step::StoreAsEnvVar(key) => {
