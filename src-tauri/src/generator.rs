@@ -55,6 +55,7 @@ pub(crate) async fn generate(
                         .arg("/C")
                         .arg(final_context)
                         .stdout(Stdio::piped())
+                        .stderr(Stdio::piped())
                         .spawn()
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -64,6 +65,7 @@ pub(crate) async fn generate(
                         .arg("-c")
                         .arg(final_context)
                         .stdout(Stdio::piped())
+                        .stderr(Stdio::piped())
                         .spawn()
                 }
             } else {
@@ -72,6 +74,7 @@ pub(crate) async fn generate(
                     .args(&custom_command[1..])
                     .arg(&final_context)
                     .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
                     .spawn()
             };
 
@@ -83,16 +86,20 @@ pub(crate) async fn generate(
             };
 
             let stdout = BufReader::new(child.stdout.expect("Failed to take stdout of child"));
+            let stderr = BufReader::new(child.stderr.expect("Failed to take stderr of child"));
 
             let stream = async_stream::stream! {
                 let mut reader = stdout;
+                let mut std_err_reader = stderr;
                 let mut buffer = Vec::new();
+                let mut err_buffer = Vec::new();
 
+                let mut should_break = false;
                 loop {
                     buffer.clear();
                     let mut temp_buf = [0; 1024]; // Temporary buffer for each read
                     match reader.read(&mut temp_buf).await {
-                        Ok(0) => break, // EOF reached
+                        Ok(0) => { should_break = true }, // EOF reached
                         Ok(size) => {
                             buffer.extend_from_slice(&temp_buf[..size]);
                             yield String::from_utf8_lossy(&buffer).to_string();
@@ -101,6 +108,19 @@ pub(crate) async fn generate(
                             eprintln!("Error reading from stdout: {}", e);
                             break;
                         }
+                    }
+
+                    err_buffer.clear();
+                    let mut err_buf = [0; 1024]; // Temporary buffer for each read
+                    if let Ok(size) = std_err_reader.read(&mut err_buf).await {
+                        err_buffer.extend_from_slice(&err_buf[..size]);
+                        yield String::from_utf8_lossy(&err_buffer).to_string();
+                    } else {
+                        should_break = true;
+                    }
+
+                    if should_break {
+                        break;
                     }
                 }
             };
