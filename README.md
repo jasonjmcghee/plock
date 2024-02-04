@@ -276,6 +276,10 @@ npm run tauri dev
 npm run tauri build
 ```
 
+## Inspiration / Another Great Project
+
+- [LLM-automater](https://github.com/radames/LLM-automator)
+
 ## Another demo
 
 Another demo where I use the perplexity shell script to generate an answer super fast.
