@@ -278,7 +278,7 @@ npm run tauri build
 
 ## Inspiration / Another Great Project
 
-- [LLM-automater](https://github.com/radames/LLM-automator)
+- [LLM-automator](https://github.com/radames/LLM-automator)
 
 ## Another demo
 
