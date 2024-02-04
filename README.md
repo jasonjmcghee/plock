@@ -116,21 +116,25 @@ very very open to feedback
   },
   "processes": [
     {
+      "name": "Use GPT",
       "command": [
         "bash",
         "/Users/jason/workspace/plock/scripts/gpt.sh"
       ]
     },
     {
+      "name": "Execute text directly as script",
       "command": []
     },
     {
+      "name": "Use perplexity",
       "command": [
         "bash",
         "/Users/jason/workspace/plock/scripts/p.sh"
       ]
     },
     {
+      "name": "Use Dall-E",
       "command": [
         "bash",
         "/Users/jason/workspace/plock/scripts/dalle.sh"
@@ -229,7 +233,7 @@ very very open to feedback
 
 ## Building Plock
 
-If you don't have apple silicon or don't want to blindly trust binaries (you shouldn't), here's how you can build it
+If you don't want to blindly trust binaries (you shouldn't), here's how you can build it
 yourself!
 
 ## Prerequisites
