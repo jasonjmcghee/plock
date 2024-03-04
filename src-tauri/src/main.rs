@@ -148,7 +148,7 @@ fn main() {
             let _ = settings::load_settings(
                 app.app_handle(),
                 trigger_index_clone.clone(),
-                trigger_flag_second_clone.clone()
+                trigger_flag_second_clone.clone(),
             );
 
             #[cfg(target_os = "macos")]
@@ -175,10 +175,10 @@ fn main() {
                             settings::load_settings(
                                 app.app_handle().clone(),
                                 trigger_index_clone.clone(),
-                                trigger_flag_second_clone.clone()
+                                trigger_flag_second_clone.clone(),
                             )
-                                .expect("Failed to load settings.")
-                        },
+                            .expect("Failed to load settings.")
+                        }
                         _ => {}
                     }
                 }
@@ -224,8 +224,7 @@ fn handle_selection(selection_action: SelectionAction) {
             // enigo.key(Key::RightArrow, Direction::Click).unwrap();
             // enigo.text("\n\n").unwrap();
         }
-        SelectionAction::Nothing => {
-        }
+        SelectionAction::Nothing => {}
     }
 }
 
@@ -328,7 +327,7 @@ fn trigger_action(
                 let mut did_exit = false;
 
                 {
-                    'outer:while let Some(response) = response_stream.next().await {
+                    'outer: while let Some(response) = response_stream.next().await {
                         whole_buffer.push(response.clone());
                         delta_buffer.push(response.clone());
 
@@ -344,20 +343,17 @@ fn trigger_action(
 
                         for step in trigger.next_steps.clone() {
                             if delta_output.is_empty() {
-                               continue;
+                                continue;
                             }
-                            match step {
-                                Step::StreamTextToScreen => {
-                                    for chunk in delta_output.chars().collect::<Vec<char>>().chunks(19) {
-                                        enigo.text(&String::from_iter(chunk).replace("\n", " \n")).expect("Failed to type out text");
-                                        // Exit loop if child process has finished or exit flag is set
-                                        if exit_flag_thread.load(Ordering::SeqCst) {
-                                            did_exit = true;
-                                            break 'outer;
-                                        }
+                            if let Step::StreamTextToScreen = step {
+                                for chunk in delta_output.chars().collect::<Vec<char>>().chunks(19) {
+                                    enigo.text(&String::from_iter(chunk)).expect("Failed to type out text");
+                                    // Exit loop if child process has finished or exit flag is set
+                                    if exit_flag_thread.load(Ordering::SeqCst) {
+                                        did_exit = true;
+                                        break 'outer;
                                     }
                                 }
-                                _ => {}
                             }
                         }
                     }
@@ -374,7 +370,7 @@ fn trigger_action(
                             Step::StreamTextToScreen => {
                                 if !delta_buffer.is_empty() {
                                     for chunk in delta_output.chars().collect::<Vec<char>>().chunks(19) {
-                                        enigo.text(&String::from_iter(chunk).replace("\n", " \n")).expect("Failed to type out text");
+                                        enigo.text(&String::from_iter(chunk)).expect("Failed to type out text");
                                         // Exit loop if child process has finished or exit flag is set
                                         if exit_flag_thread.load(Ordering::SeqCst) {
                                             should_continue = false;
@@ -425,7 +421,7 @@ fn trigger_action(
                                 paste(&mut enigo);
                             }
                             Step::WriteImageToScreen => {
-                                let image_data = decode(&whole_output.trim())
+                                let image_data = decode(whole_output.trim())
                                     .expect("Failed to decode base64 string");
 
                                 // Convert binary data to an image format (PNG)

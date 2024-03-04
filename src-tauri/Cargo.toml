@@ -13,8 +13,12 @@ edition = "2021"
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
-tauri = { version = "1.5", features = ["fs-all", "clipboard-all", "global-shortcut-all",
-    "shell-open", "system-tray"
+tauri = { version = "1.5", features = [
+  "fs-all",
+  "clipboard-all",
+  "global-shortcut-all",
+  "shell-open",
+  "system-tray",
 ] }
 
 serde = { version = "1.0", features = ["derive"] }
@@ -24,7 +28,7 @@ tokio = { version = "1.0", features = ["full"] }
 tokio-stream = "0.1.14"
 async-stream = "0.3.0"
 rdev = { git = "https://github.com/fufesou/rdev" }
-enigo = "0.2.0-rc2"
+enigo = { git = "https://github.com/enigo-rs/enigo", rev = "a1614a6" }
 arboard = "3.3.0"
 lazy_static = "1.4.0"
 base64 = "0.21.7"
